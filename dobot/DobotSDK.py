@@ -63,6 +63,8 @@ rearArmActualStepsPerRevolution = stepperMotorStepsPerRevolution * rearArmMicros
 frontArmActualStepsPerRevolution = stepperMotorStepsPerRevolution * frontArmMicrosteppingMultiplier * stepperPlanetaryGearBoxMultiplier
 
 class Dobot:
+	pos = None
+
 	def __init__(self, port, rate=115200, timeout=0.025, debug=False, plot=False, fake=False):
 		self._debugOn = debug
 		self._fake = fake
@@ -162,7 +164,8 @@ class Dobot:
 		currBaseAngle = piTwo * self._baseSteps / baseActualStepsPerRevolution
 		currRearAngle = piHalf - piTwo * self._rearSteps / rearArmActualStepsPerRevolution
 		currFrontAngle = piTwo * self._frontSteps / frontArmActualStepsPerRevolution
-		print('Current estimated coordinates:', self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle))
+		self.pos = self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle)
+		print('Current estimated coordinates:', self.pos)
 		print("--=========--")
 
 	def _moveArmToAngles(self, baseAngle, rearArmAngle, frontArmAngle, duration):
