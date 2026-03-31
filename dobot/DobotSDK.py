@@ -382,7 +382,7 @@ class Dobot:
 		else:
 			accelf = float(accel)
 
-		print("--=========--")
+		self._debug("--=========--")
 		self._debug('maxVel', maxVel)
 		self._debug('accelf', accelf)
 
