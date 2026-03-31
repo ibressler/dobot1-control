@@ -400,6 +400,8 @@ class Dobot:
 
 		distance = math.sqrt(pow(vectX, 2) + pow(vectY, 2) + pow(vectZ, 2))
 		self._debug('distance to travel', distance)
+		if distance == 0.0:
+			return  # nothing to do, avoid div-by-zero below
 
 		# If half the distance is reached before reaching maxSpeed with the given acceleration, then actual
 		# maximum velocity will be lower, hence total number of slices is determined from half the distance
