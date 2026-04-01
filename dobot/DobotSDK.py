@@ -1,23 +1,23 @@
 """
 open-dobot SDK.
 
-SDK providing high-level functions to control Dobot via the driver to open firmware, which, in turn, controls Dobot FPGA.
+SDK provides high-level functions to control Dobot via the driver to open firmware, which, in turn, controls Dobot FPGA.
 Abstracts specifics of commands sent to FPGA.
 Find firmware and driver at https://github.com/maxosprojects/open-dobot
 
-It is assumed that upon SDK initialization the arms are beetween 0 and 90 degrees - beetween their normal
+It is assumed that upon SDK initialization the arms are between 0 and 90 degrees - between their normal
 horizontal and vertical positions.
-Upon initialization accelerometers are read to figure out current arms' configuration. Accelerometers get confused
-when rear arm leans backwards from the dobot base or when front arm bends towards the base.
-Also, Inverse Kinematics at the moment don't account for when front arm is looking up (higher than it's
-normal horizontal position). So be gentle and give dobot some feasible initial configuration in case it happened
+Upon initialization, accelerometers are read to figure out current arms' configuration. Accelerometers get confused
+when the rear arm leans backwards from the dobot base or when the front arm bends towards the base.
+Also, Inverse Kinematics at the moment don't account for when the front arm is looking up (higher than its
+normal horizontal position). So be gentle and give dobot some reasonable initial configuration in case it happens
 to be beyond the mentioned limits.
-Refer to docs/images/ to find more about reference frame, arm names and more.
+Refer to docs/images/ to find more about reference frame, arm names, and more.
 
 SDK keeps track of the current end effector pose, thus in case the arm slips or motors are disabled while
-in move (with the "Laser Adjustment" button) it has to be re-initialized and SDK re-initialized.
+in move (with the "Laser Adjustment" button), it has to be re-initialized and SDK re-initialized.
 
-Author: maxosprojects (March 18 2016)
+Author: maxosprojects (March 18, 2016)
 Additional Authors: <put your name here>
 
 Version: 1.2.2
