@@ -73,61 +73,74 @@ class DobotPlotter:
         self.reset_move_plots()
 
     def reset_move_plots(self):
-        self._coordsX = []
-        self._coordsY = []
-        self._coordsZ = []
-        self._nextX = []
-        self._nextY = []
-        self._nextZ = []
-        self._diffX = []
-        self._diffY = []
-        self._diffZ = []
+        self._coords = {'x': [], 'y': [], 'z': []}
+        self._next = {'x': [], 'y': [], 'z': []}
+        self._diff = {'x': [], 'y': [], 'z': []}
+        self._slice_diff = {'base': [], 'rear': [], 'front': []}
+        self._slice_actual = {'base': [], 'rear': [], 'front': []}
 
-    def add_slice_data(self, base_diff, actual_steps_base_sign):
-        pass
-        # self._coordsX.append(base_diff)
-        # self._coordsY.append(actual_steps_base_sign)
+    def add_slice_data(self, base_diff, actual_steps_base, rear_diff, actual_steps_rear, front_diff, actual_steps_front):
+        self._slice_diff['base'].append(base_diff)
+        self._slice_diff['rear'].append(rear_diff)
+        self._slice_diff['front'].append(front_diff)
+        self._slice_actual['base'].append(actual_steps_base)
+        self._slice_actual['rear'].append(actual_steps_rear)
+        self._slice_actual['front'].append(actual_steps_front)
 
     def add_move_data(self, cx, cy, cz, nx, ny, nz):
-        self._coordsX.append(cx)
-        self._coordsY.append(cy)
-        self._coordsZ.append(cz)
-        self._nextX.append(nx)
-        self._nextY.append(ny)
-        self._nextZ.append(nz)
-        self._diffX.append(cx - nx)
-        self._diffY.append(cy - ny)
-        self._diffZ.append(cz - nz)
+        self._coords['x'].append(cx)
+        self._coords['y'].append(cy)
+        self._coords['z'].append(cz)
+        self._next['x'].append(nx)
+        self._next['y'].append(ny)
+        self._next['z'].append(nz)
+        self._diff['x'].append(cx - nx)
+        self._diff['y'].append(cy - ny)
+        self._diff['z'].append(cz - nz)
 
     def show(self):
         linewidth = 1.0
-        colors = dict(x='darkred', y='lightblue', z='darkgreen')
+        colors = dict(x='darkred', y='darkgreen', z='lightblue',
+                      base='lightblue', rear='darkgreen', front='darkred')
+
         def get_kwargs(axis):
             return dict(color=colors[axis], linewidth=linewidth, label=axis)
+
         plt = self._plt
-        # The original code had some commented out plotting logic for 9 plots.
-        plt.subplot(131)
-        line, = plt.plot(self._nextX, **get_kwargs('x'))
-        line, = plt.plot(self._nextY, **get_kwargs('y'))
-        line, = plt.plot(self._nextZ, **get_kwargs('z'))
-        plt.subplot(132)
-        line, = plt.plot(self._coordsX, **get_kwargs('x'))
-        line, = plt.plot(self._coordsY, **get_kwargs('y'))
-        line, = plt.plot(self._coordsZ, **get_kwargs('z'))
-        plt.subplot(133)
-        line, = plt.plot(self._diffX, **get_kwargs('x'))
-        line, = plt.plot(self._diffY, **get_kwargs('y'))
-        line, = plt.plot(self._diffZ, **get_kwargs('z'))
-        legend = plt.legend(loc='upper center', shadow=True)
-        # It currently only shows two lines on one plot with special y-ticks.
-        # plt.plot(self._coordsX, **get_kwargs('x'))
-        # plt.plot(self._coordsY, **get_kwargs('y'))
+        plt.figure(figsize=(12, 8))
+
+        plt.subplot(2, 3, 1)
+        plt.title("Current Coords")
+        for axis in ['x', 'y', 'z']:
+            plt.plot(self._coords[axis], **get_kwargs(axis))
+        plt.legend()
+
+        plt.subplot(2, 3, 2)
+        plt.title("Next Coords")
+        for axis in ['x', 'y', 'z']:
+            plt.plot(self._next[axis], **get_kwargs(axis))
+        plt.legend()
+
+        plt.subplot(2, 3, 3)
+        plt.title("Diff Coords")
+        for axis in ['x', 'y', 'z']:
+            plt.plot(self._diff[axis], **get_kwargs(axis))
+        plt.legend()
+
+        plt.subplot(2, 1, 2)
+        plt.title("Slice Data (Actual Steps)")
+        for axis in ['base', 'rear', 'front']:
+            plt.plot(self._slice_actual[axis], **get_kwargs(axis))
+        plt.legend()
+
         # make the y ticks integers, not floats
         yint = []
         locs, _ = plt.yticks()
         for each in locs:
             yint.append(int(each))
         plt.yticks(yint)
+
+        plt.tight_layout()
         plt.show()
 
 
