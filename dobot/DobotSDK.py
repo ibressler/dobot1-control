@@ -82,6 +82,7 @@ class Dobot:
         self._plot = plot
         if plot:
             import matplotlib.pyplot as plt
+
             self._plt = plt
         self._kinematics = DobotKinematics(debug=debug)
         self._toolRotation = 0
