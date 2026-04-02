@@ -64,6 +64,73 @@ frontArmActualStepsPerRevolution = (
 )
 
 
+class DobotPlotter:
+    def __init__(self):
+        import matplotlib.pyplot as plt
+
+        self._plt = plt
+        # Lists for detailed coordinate tracking in MoveWithSpeed
+        self.reset_move_plots()
+
+    def reset_move_plots(self):
+        self._coordsX = []
+        self._coordsY = []
+        self._coordsZ = []
+        self._nextX = []
+        self._nextY = []
+        self._nextZ = []
+        self._diffX = []
+        self._diffY = []
+        self._diffZ = []
+
+    def add_slice_data(self, base_diff, actual_steps_base_sign):
+        pass
+        # self._coordsX.append(base_diff)
+        # self._coordsY.append(actual_steps_base_sign)
+
+    def add_move_data(self, cx, cy, cz, nx, ny, nz):
+        self._coordsX.append(cx)
+        self._coordsY.append(cy)
+        self._coordsZ.append(cz)
+        self._nextX.append(nx)
+        self._nextY.append(ny)
+        self._nextZ.append(nz)
+        self._diffX.append(cx - nx)
+        self._diffY.append(cy - ny)
+        self._diffZ.append(cz - nz)
+
+    def show(self):
+        linewidth = 1.0
+        colors = dict(x='darkred', y='lightblue', z='darkgreen')
+        def get_kwargs(axis):
+            return dict(color=colors[axis], linewidth=linewidth, label=axis)
+        plt = self._plt
+        # The original code had some commented out plotting logic for 9 plots.
+        plt.subplot(131)
+        line, = plt.plot(self._nextX, **get_kwargs('x'))
+        line, = plt.plot(self._nextY, **get_kwargs('y'))
+        line, = plt.plot(self._nextZ, **get_kwargs('z'))
+        plt.subplot(132)
+        line, = plt.plot(self._coordsX, **get_kwargs('x'))
+        line, = plt.plot(self._coordsY, **get_kwargs('y'))
+        line, = plt.plot(self._coordsZ, **get_kwargs('z'))
+        plt.subplot(133)
+        line, = plt.plot(self._diffX, **get_kwargs('x'))
+        line, = plt.plot(self._diffY, **get_kwargs('y'))
+        line, = plt.plot(self._diffZ, **get_kwargs('z'))
+        legend = plt.legend(loc='upper center', shadow=True)
+        # It currently only shows two lines on one plot with special y-ticks.
+        # plt.plot(self._coordsX, **get_kwargs('x'))
+        # plt.plot(self._coordsY, **get_kwargs('y'))
+        # make the y ticks integers, not floats
+        yint = []
+        locs, _ = plt.yticks()
+        for each in locs:
+            yint.append(int(each))
+        plt.yticks(yint)
+        plt.show()
+
+
 class Dobot:
     pos = None
 
@@ -79,11 +146,7 @@ class Dobot:
             self._driver._freqCoeff = self._driver._stepCoeff * 25
         else:
             self._driver.Open(timeout)
-        self._plot = plot
-        if plot:
-            import matplotlib.pyplot as plt
-
-            self._plt = plt
+        self._plotter = DobotPlotter() if plot else None
         self._kinematics = DobotKinematics(debug=debug)
         self._toolRotation = 0
         self._gripper = 480
@@ -255,9 +318,10 @@ class Dobot:
                     int(toolRotation),
                 )
 
-        if self._plot:
-            self._toPlot1.append(baseDiff)
-            self._toPlot2.append(actualStepsBase * baseSign)
+        if self._plotter:
+            self._plotter.add_slice_data(baseDiff, actualStepsBase * baseSign,
+                                         rearDiff, actualStepsRear * rearSign,
+                                         frontDiff, actualStepsFront * frontSign)
 
         return (
             actualStepsBase * baseSign,
@@ -279,9 +343,8 @@ class Dobot:
         For toolRotation see DobotDriver.Steps() function description (servoRot parameter).
         """
 
-        if self._plot:
-            self._toPlot1 = []
-            self._toPlot2 = []
+        if self._plotter:
+            self._plotter.reset_move_plots()
 
         maxVel = float(maxSpeed)
         xx = float(x)
@@ -324,7 +387,7 @@ class Dobot:
             return  # nothing to do, avoid div-by-zero below
 
         # If half the distance is reached before reaching maxSpeed with the given acceleration, then actual
-        # maximum velocity will be lower, hence total number of slices is determined from half the distance
+        # maximum velocity will be lower; the total number of slices is determined from half the distance
         # and acceleration.
         distToReachMaxSpeed = pow(maxVel, 2) / (2.0 * accelf)
         if distToReachMaxSpeed * 2.0 >= distance:
@@ -376,18 +439,7 @@ class Dobot:
         leftStepsBase = 0.0
         leftStepsRear = 0.0
         leftStepsFront = 0.0
-        if self._plot:
-            (
-                toPlot1,
-                toPlot2,
-                toPlot3,
-                toPlot4,
-                toPlot5,
-                toPlot6,
-                toPlot7,
-                toPlot8,
-                toPlot9,
-            ) = ([], [], [], [], [], [], [], [], [])
+
         while commands < slices:
             self._debug("==============================")
             self._debug("slice #", commands)
@@ -438,46 +490,13 @@ class Dobot:
             currRearAngle = piHalf - piTwo * self._rearSteps / rearArmActualStepsPerRevolution
             currFrontAngle = piTwo * self._frontSteps / frontArmActualStepsPerRevolution
             cX, cY, cZ = self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle)
-            if self._plot:
-                toPlot1.append(cX)
-                toPlot2.append(cY)
-                toPlot3.append(cZ)
-                toPlot4.append(nextX)
-                toPlot5.append(nextY)
-                toPlot6.append(nextZ)
-                toPlot7.append(cX - nextX)
-                toPlot8.append(cY - nextY)
-                toPlot9.append(cZ - nextZ)
+            if self._plotter:
+                self._plotter.add_move_data(cX, cY, cZ, nextX, nextY, nextZ)
 
         self._toolRotation = toolRotation
 
-        if self._plot:
-            # linewidth = 1.0
-            # plt.subplot(131)
-            # line, = plt.plot(toPlot4, linewidth=linewidth)
-            # line, = plt.plot(toPlot5, linewidth=linewidth)
-            # line, = plt.plot(toPlot6, linewidth=linewidth)
-            # plt.subplot(132)
-            # line, = plt.plot(toPlot1, linewidth=linewidth)
-            # line, = plt.plot(toPlot2, linewidth=linewidth)
-            # line, = plt.plot(toPlot3, linewidth=linewidth)
-            # plt.subplot(133)
-            # line, = plt.plot(toPlot7, linewidth=linewidth, label='x')
-            # line, = plt.plot(toPlot8, linewidth=linewidth, label='y')
-            # line, = plt.plot(toPlot9, linewidth=linewidth, label='z')
-            # legend = plt.legend(loc='upper center', shadow=True)
-            # plt.show()
-
-            linewidth = 1.0
-            self._plt.plot(self._toPlot1, linewidth=linewidth)
-            self._plt.plot(self._toPlot2, linewidth=2.0)
-            # make the y ticks integers, not floats
-            yint = []
-            locs, _ = self._plt.yticks()
-            for each in locs:
-                yint.append(int(each))
-            self._plt.yticks(yint)
-            self._plt.show()
+        if self._plotter:
+            self._plotter.show()
 
     def Gripper(self, value):
         if value > 480:
