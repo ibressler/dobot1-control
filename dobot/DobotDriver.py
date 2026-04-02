@@ -43,13 +43,14 @@ CMD_BOARD_VERSION = 12
 piToDegrees = 180.0 / math.pi
 halfPi = math.pi / 2.0
 
+
 class DobotDriver:
     def __init__(self, comport, rate=115200):
         self._lock = threading.Lock()
         self._comport = comport
         self._rate = rate
         self._port = None
-        self._crc = 0xffff
+        self._crc = 0xFFFF
         self.FPGA = 0
         self.RAMPS = 1
         self._toolRotation = 0
@@ -57,7 +58,9 @@ class DobotDriver:
 
     def Open(self, timeout=0.025):
         try:
-            self._port = SerialAggregator(serial.Serial(self._comport, baudrate=self._rate, timeout=timeout, inter_byte_timeout=0.1))
+            self._port = SerialAggregator(
+                serial.Serial(self._comport, baudrate=self._rate, timeout=timeout, inter_byte_timeout=0.1)
+            )
             # self._port = serial.Serial(self._comport, baudrate=self._rate, timeout=timeout, interCharTimeout=0.1)
 
             # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -92,7 +95,7 @@ class DobotDriver:
             self._stopSeq = self.reverseBits32(0)
         else:
             self._stepCoeff = 500000
-            self._stopSeq = 0x0242f000
+            self._stopSeq = 0x0242F000
         self._stepCoeffOver2 = self._stepCoeff / 2
         self._freqCoeff = self._stepCoeff * 25
 
@@ -100,13 +103,13 @@ class DobotDriver:
         self._port.close()
 
     def _crc_clear(self):
-        self._crc = 0xffff
+        self._crc = 0xFFFF
 
     def _crc_update(self, data):
         self._crc = self._crc ^ (data << 8)
         for bit in range(0, 8):
-            if (self._crc&0x8000) == 0x8000:
-                self._crc = ((self._crc << 1) ^ 0x1021)
+            if (self._crc & 0x8000) == 0x8000:
+                self._crc = (self._crc << 1) ^ 0x1021
             else:
                 self._crc = self._crc << 1
 
@@ -166,32 +169,24 @@ class DobotDriver:
         return self._read(cmd, [self._readbyte])
 
     def _read22(self, cmd):
-        return self._read(cmd, [self._readword,
-                                self._readword])
+        return self._read(cmd, [self._readword, self._readword])
 
     def _reads22(self, cmd):
-        return self._read(cmd, [self._readsword,
-                                self._readsword])
+        return self._read(cmd, [self._readsword, self._readsword])
 
     def _reads222222(self, cmd):
-        return self._read(cmd, [self._readsword,
-                                self._readsword,
-                                self._readsword,
-                                self._readsword,
-                                self._readsword,
-                                self._readsword])
+        return self._read(
+            cmd, [self._readsword, self._readsword, self._readsword, self._readsword, self._readsword, self._readsword]
+        )
 
     def _read4(self, cmd):
         return self._read(cmd, [self._readlong])
 
     def _read41(self, cmd):
-        return self._read(cmd, [self._readslong,
-                                self._readbyte])
+        return self._read(cmd, [self._readslong, self._readbyte])
 
     def _reads444(self, cmd):
-        return self._read(cmd, [self._readslong,
-                                self._readslong,
-                                self._readslong])
+        return self._read(cmd, [self._readslong, self._readslong, self._readslong])
 
     def _read(self, cmd, read_commands=None):
         if read_commands is None:
@@ -273,15 +268,12 @@ class DobotDriver:
         return self._write(cmd, [(self._writebyte, val1), (self._writelong, val2)])
 
     def _write14411(self, cmd, val1, val2, val3, val4):
-        return self._write(cmd, [(self._writelong, val1),
-                                 (self._writelong, val2),
-                                 (self._writebyte, val3),
-                                 (self._writebyte, val4)])
+        return self._write(
+            cmd, [(self._writelong, val1), (self._writelong, val2), (self._writebyte, val3), (self._writebyte, val4)]
+        )
 
     def _write444(self, cmd, val1, val2, val3):
-        return self._write(cmd, [(self._writelong, val1),
-                                 (self._writelong, val2),
-                                 (self._writelong, val3)])
+        return self._write(cmd, [(self._writelong, val1), (self._writelong, val2), (self._writelong, val3)])
 
     def _write_read(self, cmd, write_commands):
         tries = _max_trys
@@ -308,32 +300,46 @@ class DobotDriver:
         return self._write_read(cmd, [(self._writebyte, val1)])
 
     def _write11121read1(self, cmd, val1, val2, val3, val4, val5):
-        return self._write_read(cmd, [(self._writebyte, val1),
-                                      (self._writebyte, val2),
-                                      (self._writebyte, val3),
-                                      (self._writeword, val4),
-                                      (self._writebyte, val5)])
+        return self._write_read(
+            cmd,
+            [
+                (self._writebyte, val1),
+                (self._writebyte, val2),
+                (self._writebyte, val3),
+                (self._writeword, val4),
+                (self._writebyte, val5),
+            ],
+        )
 
     def _write14441read1(self, cmd, val1, val2, val3, val4):
-        return self._write_read(cmd, [(self._writelong, val1),
-                                      (self._writelong, val2),
-                                      (self._writelong, val3),
-                                      (self._writebyte, val4)])
+        return self._write_read(
+            cmd, [(self._writelong, val1), (self._writelong, val2), (self._writelong, val3), (self._writebyte, val4)]
+        )
 
     def _write1444122read1(self, cmd, val1, val2, val3, val4, val5, val6):
-        return self._write_read(cmd, [(self._writelong, val1),
-                                      (self._writelong, val2),
-                                      (self._writelong, val3),
-                                      (self._writebyte, val4),
-                                      (self._writeword, val5),
-                                      (self._writeword, val6)])
+        return self._write_read(
+            cmd,
+            [
+                (self._writelong, val1),
+                (self._writelong, val2),
+                (self._writelong, val3),
+                (self._writebyte, val4),
+                (self._writeword, val5),
+                (self._writeword, val6),
+            ],
+        )
 
     def reverseBits32(self, val):
         ### return long(bin(val&0xFFFFFFFF)[:1:-1], 2)
         # return int('{0:032b}'.format(val)[::-1], 2)
         # Not reversing bits in bytes any more as SPI switched to LSB first.
         # But still need to reverse bytes places.
-        return ((val & 0x000000FF) << 24) | ((val & 0x0000FF00) << 8) | ((val & 0x00FF0000) >> 8) | ((val & 0xFF000000) >> 24)
+        return (
+            ((val & 0x000000FF) << 24)
+            | ((val & 0x0000FF00) << 8)
+            | ((val & 0x00FF0000) >> 8)
+            | ((val & 0xFF000000) >> 24)
+        )
 
     def reverseBits16(self, val):
         # Not reversing bits in bytes any more as SPI switched to LSB first.
@@ -476,7 +482,9 @@ class DobotDriver:
         self._toolRotation = servoRot
         self._gripper = servoGrab
 
-        result = self._write1444122read1(CMD_STEPS, j1, j2, j3, control, self.reverseBits16(servoGrab), self.reverseBits16(servoRot))
+        result = self._write1444122read1(
+            CMD_STEPS, j1, j2, j3, control, self.reverseBits16(servoGrab), self.reverseBits16(servoRot)
+        )
         self._lock.release()
         return result
 
@@ -517,7 +525,7 @@ class DobotDriver:
         Switches dobot to accelerometer report mode.
         Dobot must be reset to enter normal mode after issuing this command.
         """
-        raise NotImplementedError('Read function description for more info')
+        raise NotImplementedError("Read function description for more info")
 
     def LaserOn(self, on):
         """
@@ -609,13 +617,15 @@ class DobotDriver:
         return result
 
     def reset(self):
-        #		self._lock.acquire()
+        # 		self._lock.acquire()
         i = 0
         while i < 5:
             self._port.read(1)
             i += 1
         self._crc_clear()
-#		self._lock.release()
+
+
+# 		self._lock.release()
 
 """
 open-dobot serial aggregator.
@@ -624,6 +634,8 @@ This is a workaround to send data in bursts on systems that have slow API
 used by pyserial (e.g. Windows).
 
 """
+
+
 class SerialAggregator:
     def __init__(self, ser):
         self._ser = ser
