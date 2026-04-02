@@ -177,12 +177,7 @@ class Dobot:
 
     def _debug(self, *args):
         if self._debugOn:
-            # Since "print" is not a function the expansion (*) cannot be used
-            # as it is not an operator. So this is a workaround.
-            for arg in args:
-                sys.stdout.write(str(arg))
-                sys.stdout.write(" ")
-            print("")
+            print(*args)
 
     def InitializeAccelerometers(self):
         print("--=========--")

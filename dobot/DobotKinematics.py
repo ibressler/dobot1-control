@@ -43,7 +43,7 @@ class DobotKinematics:
 
     def _debug(self, *args):
         if self._debugOn:
-            print(f"{args=}")
+            print(*args)
 
     @staticmethod
     def coordinatesFromAngles(baseAngle, rearArmAngle, frontArmAngle):
