@@ -57,7 +57,7 @@ class DobotDriver:
 
     def Open(self, timeout=0.025):
         try:
-            self._port = SerialAggregator(serial.Serial(self._comport, baudrate=self._rate, timeout=timeout, interCharTimeout=0.1))
+            self._port = SerialAggregator(serial.Serial(self._comport, baudrate=self._rate, timeout=timeout, inter_byte_timeout=0.1))
             # self._port = serial.Serial(self._comport, baudrate=self._rate, timeout=timeout, interCharTimeout=0.1)
 
             # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -439,7 +439,7 @@ class DobotDriver:
         self._lock.release()
         return result
 
-    def Steps(self, j1, j2, j3, j1dir, j2dir, j3dir, servoGrab, servoRot, deferred=False):
+    def Steps(self, j1, j2, j3, j1dir, j2dir, j3dir, servoGrab, servoRot):
         """
         Adds a command to the controller's queue to execute on FPGA.
         @param j1 - joint1 subcommand
@@ -457,8 +457,6 @@ class DobotDriver:
         to the controller's command queue (1 - added, 0 - not added, as the queue was full).
         """
         control = (j1dir & 0x01) | ((j2dir & 0x01) << 1) | ((j3dir & 0x01) << 2)
-        # if deferred:
-        # 	control |= 0x01
         self._lock.acquire()
         if servoGrab > 480:
             servoGrab = 480
@@ -479,16 +477,6 @@ class DobotDriver:
         self._gripper = servoGrab
 
         result = self._write1444122read1(CMD_STEPS, j1, j2, j3, control, self.reverseBits16(servoGrab), self.reverseBits16(servoRot))
-        self._lock.release()
-        return result
-
-    def ExecQueue(self):
-        """
-        Executes deferred commands.
-        """
-        raise NotImplementedError()
-        self._lock.acquire()
-        result = self._write0(CMD_EXEC_QUEUE)
         self._lock.release()
         return result
 
@@ -530,10 +518,6 @@ class DobotDriver:
         Dobot must be reset to enter normal mode after issuing this command.
         """
         raise NotImplementedError('Read function description for more info')
-        self._lock.acquire()
-        result = self._write_read(CMD_SWITCH_TO_ACCEL_REPORT_MODE, [])
-        self._lock.release()
-        return result
 
     def LaserOn(self, on):
         """
