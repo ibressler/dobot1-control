@@ -385,8 +385,8 @@ class Dobot:
             timeFlat = 0
             flatSlices = 0
             maxVel = math.sqrt(distance * accelf)
-        # Or else the number of slices when velocity does not change is greater than zero.
         else:
+            # Or else the number of slices when velocity does not change is greater than zero.
             timeToAccel = maxVel / accelf
             accelSlices = timeToAccel * 50.0
             timeFlat = (distance - distToReachMaxSpeed * 2.0) / maxVel
@@ -421,16 +421,13 @@ class Dobot:
         while commands < slices:
             self._debug("==============================")
             self._debug("slice #", commands)
-            # If accelerating
-            if commands <= accelSlices:
+            if commands <= accelSlices:  # If accelerating
                 t2half = pow(commands / 50.0, 2) / 2.0
                 nextPos = currPos + accelVect * t2half
-            # If decelerating
-            elif commands >= accelSlices + flatSlices:
+            elif commands >= accelSlices + flatSlices:  # If decelerating
                 t2half = pow((slices - commands) / 50.0, 2) / 2.0
                 nextPos = currPos + segmentAccel * 2.0 + segmentFlat - accelVect * t2half
-            # Or else moving at maxSpeed
-            else:
+            else:  # Or else moving at maxSpeed
                 t = abs(commands - accelSlices) / 50.0
                 nextPos = currPos + segmentAccel + maxVelVect * t
             self._debug("moving to", *nextPos)
