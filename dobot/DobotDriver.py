@@ -462,7 +462,7 @@ class DobotDriver:
         received (1 - received, 0 - timed out), and the second element tells whether the command was added
         to the controller's command queue (1 - added, 0 - not added, as the queue was full).
         """
-        control = (j1dir & 0x01) | ((j2dir & 0x01) << 1) | ((j3dir & 0x01) << 2)
+        control = (int(j1dir) & 0x01) | ((int(j2dir) & 0x01) << 1) | ((int(j3dir) & 0x01) << 2)
         self._lock.acquire()
         if servoGrab > 480:
             servoGrab = 480
@@ -483,7 +483,7 @@ class DobotDriver:
         self._gripper = servoGrab
 
         result = self._write1444122read1(
-            CMD_STEPS, j1, j2, j3, control, self.reverseBits16(servoGrab), self.reverseBits16(servoRot)
+            CMD_STEPS, int(j1), int(j2), int(j3), control, self.reverseBits16(servoGrab), self.reverseBits16(servoRot)
         )
         self._lock.release()
         return result
