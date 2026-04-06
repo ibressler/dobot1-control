@@ -445,24 +445,18 @@ class DobotDriver:
         self._lock.release()
         return result
 
-    def Steps(self, j1, j2, j3, j1dir, j2dir, j3dir, servoGrab, servoRot):
+    def Steps(self, jointCmd, jointDir, servoGrab, servoRot):
         """
         Adds a command to the controller's queue to execute on FPGA.
-        @param j1 - joint1 subcommand
-        @param j2 - joint2 subcommand
-        @param j3 - joint3 subcommand
-        @param j1dir - direction for joint1: 0-1
-        @param j2dir - direction for joint2: 0-1
-        @param j3dir - direction for joint3: 0-1
+        @param jointCmd - joint subcommands as a list of 3 integers
+        @param jointDir - direction for each joint as a list of 3 integers: 0-1
         @param servoGrab - servoGrab position (gripper): 0x00d0-0x01e0 (or 208-480 decimal)
         @param servoRot - servoRot position (tool rotation): 0x0000-0x0400 (or 0-1024 decimal)
-        @param deferred - defer execution of this command and all commands issued after this until
-                        the "ExecQueue" command is issued. Currently ignored.
         @return Returns a tuple where the first element tells whether the command has been successfully
         received (1 - received, 0 - timed out), and the second element tells whether the command was added
         to the controller's command queue (1 - added, 0 - not added, as the queue was full).
         """
-        control = (int(j1dir) & 0x01) | ((int(j2dir) & 0x01) << 1) | ((int(j3dir) & 0x01) << 2)
+        control = (int(jointDir[0]) & 0x01) | ((int(jointDir[1]) & 0x01) << 1) | ((int(jointDir[2]) & 0x01) << 2)
         self._lock.acquire()
         if servoGrab > 480:
             servoGrab = 480
@@ -483,7 +477,8 @@ class DobotDriver:
         self._gripper = servoGrab
 
         result = self._write1444122read1(
-            CMD_STEPS, int(j1), int(j2), int(j3), control, self.reverseBits16(servoGrab), self.reverseBits16(servoRot)
+            CMD_STEPS, int(jointCmd[0]), int(jointCmd[1]), int(jointCmd[2]),
+            control, self.reverseBits16(servoGrab), self.reverseBits16(servoRot)
         )
         self._lock.release()
         return result
@@ -587,7 +582,7 @@ class DobotDriver:
             ret = (0, 0)
             # Keep sending until buffered
             while not ret[0] or not ret[1]:
-                ret = self.Steps(0, 0, 0, 0, 0, 0, self._gripper, self._toolRotation)
+                ret = self.Steps([0, 0, 0], [0, 0, 0], self._gripper, self._toolRotation)
 
     def BoardVersion(self):
         """

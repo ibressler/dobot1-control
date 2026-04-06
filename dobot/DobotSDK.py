@@ -64,6 +64,7 @@ frontArmActualStepsPerRevolution = (
     stepperMotorStepsPerRevolution * frontArmMicrosteppingMultiplier * stepperPlanetaryGearBoxMultiplier
 )
 
+BASE, REAR, FRONT = range(3)
 
 class DobotPlotter:
     def __init__(self):
@@ -74,30 +75,21 @@ class DobotPlotter:
         self.reset_move_plots()
 
     def reset_move_plots(self):
-        self._coords = {'x': [], 'y': [], 'z': []}
-        self._next = {'x': [], 'y': [], 'z': []}
-        self._diff = {'x': [], 'y': [], 'z': []}
-        self._slice_diff = {'base': [], 'rear': [], 'front': []}
-        self._slice_actual = {'base': [], 'rear': [], 'front': []}
+        self._coords = []
+        self._next = []
+        self._diff = []
+        self._slice_diff = []
+        self._slice_actual = []
 
-    def add_slice_data(self, base_diff, actual_steps_base, rear_diff, actual_steps_rear, front_diff, actual_steps_front):
-        self._slice_diff['base'].append(base_diff)
-        self._slice_diff['rear'].append(rear_diff)
-        self._slice_diff['front'].append(front_diff)
-        self._slice_actual['base'].append(actual_steps_base)
-        self._slice_actual['rear'].append(actual_steps_rear)
-        self._slice_actual['front'].append(actual_steps_front)
+    def add_slice_data(self, diffs, actual_steps):
+        #, rear_diff, actual_steps_rear, front_diff, actual_steps_front):
+        self._slice_diff.append(diffs)
+        self._slice_actual.append(actual_steps)
 
-    def add_move_data(self, cx, cy, cz, nx, ny, nz):
-        self._coords['x'].append(cx)
-        self._coords['y'].append(cy)
-        self._coords['z'].append(cz)
-        self._next['x'].append(nx)
-        self._next['y'].append(ny)
-        self._next['z'].append(nz)
-        self._diff['x'].append(cx - nx)
-        self._diff['y'].append(cy - ny)
-        self._diff['z'].append(cz - nz)
+    def add_move_data(self, coord:np.ndarray, nextPos:np.ndarray):
+        self._coords.append(coord)
+        self._next.append(nextPos)
+        self._diff.append(coord - nextPos)
 
     def show(self):
         linewidth = 1.0
@@ -110,28 +102,39 @@ class DobotPlotter:
         plt = self._plt
         plt.figure(figsize=(12, 8))
 
-        plt.subplot(2, 3, 1)
+        plt.subplot(3, 3, 1)
         plt.title("Current Coords")
-        for axis in ['x', 'y', 'z']:
-            plt.plot(self._coords[axis], **get_kwargs(axis))
+        data = np.stack(self._coords)
+        for i, axis in enumerate(['x', 'y', 'z']):
+            plt.plot(data[:,i], **get_kwargs(axis))
         plt.legend()
 
-        plt.subplot(2, 3, 2)
+        plt.subplot(3, 3, 2)
         plt.title("Next Coords")
-        for axis in ['x', 'y', 'z']:
-            plt.plot(self._next[axis], **get_kwargs(axis))
+        data = np.stack(self._next)
+        for i, axis in enumerate(['x', 'y', 'z']):
+            plt.plot(data[:,i], **get_kwargs(axis))
         plt.legend()
 
-        plt.subplot(2, 3, 3)
+        plt.subplot(3, 3, 3)
         plt.title("Diff Coords")
-        for axis in ['x', 'y', 'z']:
-            plt.plot(self._diff[axis], **get_kwargs(axis))
+        data = np.stack(self._diff)
+        for i, axis in enumerate(['x', 'y', 'z']):
+            plt.plot(data[:,i], **get_kwargs(axis))
         plt.legend()
 
-        plt.subplot(2, 1, 2)
+        plt.subplot(3, 1, 2)
         plt.title("Slice Data (Actual Steps)")
-        for axis in ['base', 'rear', 'front']:
-            plt.plot(self._slice_actual[axis], **get_kwargs(axis))
+        data = np.stack(self._slice_actual)
+        for i, axis in enumerate(['base', 'rear', 'front']):
+            plt.plot(data[:,i], **get_kwargs(axis))
+        plt.legend()
+
+        plt.subplot(3, 1, 3)
+        plt.title("Slice Data (Diff Steps)")
+        data = np.stack(self._slice_diff)
+        for i, axis in enumerate(['base', 'rear', 'front']):
+            plt.plot(data[:,i], **get_kwargs(axis))
         plt.legend()
 
         # make the y ticks integers, not floats
@@ -274,24 +277,23 @@ class Dobot:
 
         dirs = np.ones(3, dtype=int)  # get numpy.int64 somewhere, fix?
         signs = np.array([1, 1, -1])
-        base, rear, front = range(3)
 
-        if diffs[base] < 1:
-            dirs[base] = 0
-            signs[base] = -1
-        if diffs[rear] < 1:
-            dirs[rear] = 0
-            signs[rear] = -1
-        if diffs[front] > 1:
-            dirs[front] = 0
-            signs[front] = 1
+        if diffs[BASE] < 1:
+            dirs[BASE] = 0
+            signs[BASE] = -1
+        if diffs[REAR] < 1:
+            dirs[REAR] = 0
+            signs[REAR] = -1
+        if diffs[FRONT] > 1:
+            dirs[FRONT] = 0
+            signs[FRONT] = 1
 
         diffsAbs = np.abs(diffs)
 
         # We still need to call stepsToCmdValFloat for each, as it returns a tuple
-        resBase = self._driver.stepsToCmdValFloat(diffsAbs[base])
-        resRear = self._driver.stepsToCmdValFloat(diffsAbs[rear])
-        resFront = self._driver.stepsToCmdValFloat(diffsAbs[front])
+        resBase = self._driver.stepsToCmdValFloat(diffsAbs[BASE])
+        resRear = self._driver.stepsToCmdValFloat(diffsAbs[REAR])
+        resFront = self._driver.stepsToCmdValFloat(diffsAbs[FRONT])
 
         cmdVals = [resBase[0], resRear[0], resFront[0]]
         actualSteps = np.array([resBase[1], resRear[1], resFront[1]])
@@ -299,9 +301,9 @@ class Dobot:
 
         # Compensate for backlash.
         # For now compensate only backlash in the base motor as the backlash in the arm motors depends on a specific task (a laser/brush or push-pull tasks).
-        if self._lastBaseDirection != dirs[base] and actualSteps[base] > 0:
-            cmdVals[base], _ignore, _ignore = self._driver.stepsToCmdValFloat(diffsAbs[base] + backlash)
-            self._lastBaseDirection = dirs[base]
+        if self._lastBaseDirection != dirs[BASE] and actualSteps[BASE] > 0:
+            cmdVals[BASE], _ignore, _ignore = self._driver.stepsToCmdValFloat(diffsAbs[BASE] + backlash)
+            self._lastBaseDirection = dirs[BASE]
         # if self._lastRearDirection != rearDir and actualStepsRear > 0:
         # 	cmdRearVal, _ignore, _ignore = self._driver.stepsToCmdValFloat(rearDiffAbs + backlash)
         # 	self._lastRearDirection = rearDir
@@ -313,16 +315,13 @@ class Dobot:
             # Repeat until the command is queued. May not be queued if the queue is full.
             ret = (0, 0)
             while not ret[1]:
-                self.steps = self._driver.Steps(cmdVals[base], cmdVals[rear], cmdVals[front], dirs[base], dirs[rear],
-                                                dirs[front], self._gripper, int(toolRotation), )
+                self.steps = self._driver.Steps(cmdVals, dirs, self._gripper, int(toolRotation))
                 ret = self.steps
 
         actualSteps *= signs
         leftSteps *= signs
         if self._plotter:
-            self._plotter.add_slice_data(diffs[base], actualSteps[base],
-                                         diffs[rear], actualSteps[rear],
-                                         diffs[front], actualSteps[front])
+            self._plotter.add_slice_data(diffs, actualSteps)
 
         return actualSteps, leftSteps
 
@@ -460,7 +459,7 @@ class Dobot:
             currFrontAngle = piTwo * self._frontSteps / frontArmActualStepsPerRevolution
             cX, cY, cZ = self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle)
             if self._plotter:
-                self._plotter.add_move_data(cX, cY, cZ, *nextPos)
+                self._plotter.add_move_data(np.array((cX, cY, cZ)), nextPos)
 
         self._toolRotation = toolRotation
 
@@ -475,7 +474,7 @@ class Dobot:
         else:
             self._gripper = value
 
-        self._driver.Steps(0, 0, 0, 0, 0, 0, self._gripper, self._toolRotation)
+        self._driver.Steps([0, 0, 0], [0, 0, 0], self._gripper, self._toolRotation)
 
     def Wait(self, waitTime):
         """
