@@ -331,7 +331,7 @@ class Dobot:
         """
         return self._driver.freqToCmdVal(freq)
 
-    def MoveWithSpeed(self, x, y, z, maxSpeed, accel=None, toolRotation=None):
+    def MoveWithSpeed(self, targetPos:np.ndarray, maxSpeed, accel=None, toolRotation=None):
         """
         For toolRotation see DobotDriver.Steps() function description (servoRot parameter).
         """
@@ -340,9 +340,7 @@ class Dobot:
             self._plotter.reset_move_plots()
 
         maxVel = float(maxSpeed)
-        xx = float(x)
-        yy = float(y)
-        zz = float(z)
+        targetPos = targetPos.astype(float)
 
         if toolRotation is None:
             toolRotation = self._toolRotation
@@ -366,7 +364,6 @@ class Dobot:
         currRearAngle = piHalf - piTwo * self._rearSteps / rearArmActualStepsPerRevolution
         currFrontAngle = piTwo * self._frontSteps / frontArmActualStepsPerRevolution
         currPos = np.array(self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle))
-        targetPos = np.array([xx, yy, zz])
 
         vect = targetPos - currPos
         self._debug("moving from", *currPos)
