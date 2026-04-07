@@ -148,9 +148,10 @@ class DobotPlotter:
         plt.show()
 
 
-class Dobot:
-    pos = None
+def print_arr(prefix, *args):
+    print(f"{prefix:>11s}", *[f"{v: 7.1f}" for arr in args for v in arr])
 
+class Dobot:
     def __init__(self, port, rate=115200, timeout=0.025, debug=False, plot=False, fake=False):
         self._debugOn = debug
         self._fake = fake
@@ -249,15 +250,17 @@ class Dobot:
             self._frontSteps,
         )
         print("Reading back what was set:", self._driver.GetCounters())
-        currBaseAngle = piTwo * self._baseSteps / baseActualStepsPerRevolution
-        currRearAngle = piHalf - piTwo * self._rearSteps / rearArmActualStepsPerRevolution
-        currFrontAngle = piTwo * self._frontSteps / frontArmActualStepsPerRevolution
-        self.pos = self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle)
         print("Current estimated coordinates:", self.pos)
         print("--=========--")
 
-    def _moveToAnglesSlice(self, baseAngle, rearArmAngle, frontArmAngle, toolRotation):
-        angles = np.array([baseAngle, rearArmAngle, frontArmAngle])
+    @property
+    def pos(self):
+        currBaseAngle = piTwo * self._baseSteps / baseActualStepsPerRevolution
+        currRearAngle = piHalf - piTwo * self._rearSteps / rearArmActualStepsPerRevolution
+        currFrontAngle = piTwo * self._frontSteps / frontArmActualStepsPerRevolution
+        return np.array(self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle), dtype=float)
+
+    def _moveToAnglesSlice(self, angles, toolRotation, debug=False):
         multipliers = np.array([
             baseActualStepsPerRevolution,
             rearArmActualStepsPerRevolution,
@@ -266,16 +269,15 @@ class Dobot:
         stepLocations = angles * multipliers / piTwo
         # rear and front are absolute in the original code
         stepLocations[1:] = np.abs(stepLocations[1:])
-
-        self._debug("Step Locations", *stepLocations)
-        self._debug("Current Steps", self._baseSteps, self._rearSteps, self._frontSteps)
-
         currSteps = np.array([self._baseSteps, self._rearSteps, self._frontSteps])
         diffs = stepLocations - currSteps
 
-        self._debug("Diffs", *diffs)
+        if debug:
+            print_arr("currSteps:", currSteps)
+            print_arr("stepLocs:", stepLocations)
+            print_arr("diffs:", diffs)
 
-        dirs = np.ones(3, dtype=int)  # get numpy.int64 somewhere, fix?
+        dirs = np.ones(3, dtype=int)
         signs = np.array([1, 1, -1])
 
         if diffs[BASE] < 1:
@@ -331,129 +333,215 @@ class Dobot:
         """
         return self._driver.freqToCmdVal(freq)
 
-    def MoveWithSpeed(self, targetPos:np.ndarray, maxSpeed, accel=None, toolRotation=None):
+    @staticmethod
+    def _axis_sign(value):
+        if value > 0.0:
+            return 1
+        if value < 0.0:
+            return -1
+        return 0
+
+    def _normalize_move_targets(self, targets):
+        if isinstance(targets, np.ndarray) and targets.ndim == 1:
+            return [targets.astype(float)]
+        return [np.array(t, dtype=float) for t in targets]
+
+    def _segment_axis_reversal(self, seg_a, seg_b):
+        """
+        Return True if any axis changes the direction between two consecutive segments.
+        """
+        if seg_b is None or seg_a is None:
+            return False
+
+        reversal = [False] * 3
+        for axis in range(3):
+            a = self._axis_sign(seg_a[axis])
+            b = self._axis_sign(seg_b[axis])
+            if a != 0 and b != 0 and a != b:
+                reversal[axis] = True
+        return any(reversal)
+
+    def _plan_waypoint_speeds(self, segments, maxVel, accel):
+        """
+        Two-pass lookahead planner.
+
+        Returns a list of waypoint speeds with:
+          speeds[0] == 0.0
+          speeds[-1] == 0.0
+        """
+        n = len(segments)
+        speeds = [0.0] * (n + 1)
+        if n == 0:
+            return speeds
+
+        distances = [float(np.linalg.norm(seg)) for seg in segments]
+
+        # Waypoints that require a stop because the direction reverses in the next segment.
+        waypoint_limit = [maxVel] * (n + 1)
+        waypoint_limit[0] = 0.0
+        waypoint_limit[-1] = 0.0
+
+        for i in range(1, n):
+            if self._segment_axis_reversal(segments[i - 1], segments[i]):
+                waypoint_limit[i] = 0.0
+
+        # Forward pass: accelerate as much as possible from the start.
+        speeds[0] = 0.0
+        for i in range(n):
+            speeds[i + 1] = min(
+                waypoint_limit[i + 1],
+                math.sqrt(max(speeds[i] * speeds[i] + 2.0 * accel * distances[i], 0.0)),
+            )
+
+        # Backward pass: ensure we can decelerate to the next waypoint speed in time.
+        speeds[-1] = 0.0
+        for i in range(n - 1, -1, -1):
+            speeds[i] = min(
+                speeds[i],
+                math.sqrt(max(speeds[i + 1] * speeds[i + 1] + 2.0 * accel * distances[i], 0.0)),
+            )
+
+        # One more forward pass to keep the profile consistent after the backward clamp.
+        speeds[0] = 0.0
+        for i in range(n):
+            speeds[i + 1] = min(
+                waypoint_limit[i + 1],
+                speeds[i + 1],
+                math.sqrt(max(speeds[i] * speeds[i] + 2.0 * accel * distances[i], 0.0)),
+            )
+
+        speeds[-1] = 0.0
+        return speeds, distances
+
+    def MoveWithSpeed(self, targetPos, maxSpeed, accel=None, toolRotation=None):
         """
         For toolRotation see DobotDriver.Steps() function description (servoRot parameter).
+
+        targetPos may be either:
+          - a single 3-element position, or
+          - a list/array of 3-element positions to follow with lookahead
+        The current position is used as the starting point.
         """
 
         if self._plotter:
             self._plotter.reset_move_plots()
 
+        # Set 100% acceleration to equal maximum velocity if it wasn't provided
         maxVel = float(maxSpeed)
-        targetPos = targetPos.astype(float)
+        accelf = maxVel if accel is None else float(accel)
 
         if toolRotation is None:
             toolRotation = self._toolRotation
-        elif toolRotation > 1024:
-            toolRotation = 1024
-        elif toolRotation < 0:
-            toolRotation = 0
-
-        accelf = None
-        # Set 100% acceleration to equal maximum velocity if it wasn't provided
-        if accel is None:
-            accelf = maxVel
-        else:
-            accelf = float(accel)
+        toolRotation = float(np.clip(toolRotation, 0, 1024))
 
         self._debug("--=========--")
-        self._debug("maxVel", maxVel)
-        self._debug("accelf", accelf)
+        self._debug(f"{maxVel=}")
+        self._debug(f"{accelf=}")
 
-        currBaseAngle = piTwo * self._baseSteps / baseActualStepsPerRevolution
-        currRearAngle = piHalf - piTwo * self._rearSteps / rearArmActualStepsPerRevolution
-        currFrontAngle = piTwo * self._frontSteps / frontArmActualStepsPerRevolution
-        currPos = np.array(self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle))
+        targets = self._normalize_move_targets(targetPos)
+        if len(targets) == 0:
+            return
 
-        vect = targetPos - currPos
-        self._debug("moving from", *currPos)
-        self._debug("moving to", *targetPos)
-        self._debug("moving by", *vect)
+        # Build a full path including the current position as the starting point.
+        currPos = self.pos
+        points = [currPos] + targets
+        segments = [points[i + 1] - points[i] for i in range(len(points) - 1)]
+        waypoint_speeds, distances = self._plan_waypoint_speeds(segments, maxVel, accelf)
+        self._debug(f"{points=}")
+        self._debug(f"{segments=}")
+        self._debug(f"{distances=}")
+        self._debug(f"{waypoint_speeds=}")
 
-        distance = np.linalg.norm(vect)
-        self._debug("distance to travel", distance)
-        if distance == 0.0:
-            return  # nothing to do, avoid div-by-zero below
+        for seg_index, seg_vect in enumerate(segments):
+            target = points[seg_index + 1]
+            distance = distances[seg_index]
 
-        # If half the distance is reached before reaching maxSpeed with the given acceleration, then actual
-        # maximum velocity will be lower; the total number of slices is determined from half the distance
-        # and acceleration.
-        distToReachMaxSpeed = pow(maxVel, 2) / (2.0 * accelf)
-        if distToReachMaxSpeed * 2.0 >= distance:
-            timeToAccel = math.sqrt(distance / accelf)
-            accelSlices = timeToAccel * 50.0
-            timeFlat = 0
-            flatSlices = 0
-            maxVel = math.sqrt(distance * accelf)
-        else:
-            # Or else the number of slices when velocity does not change is greater than zero.
-            timeToAccel = maxVel / accelf
-            accelSlices = timeToAccel * 50.0
-            timeFlat = (distance - distToReachMaxSpeed * 2.0) / maxVel
-            flatSlices = timeFlat * 50.0
+            if distance == 0.0:
+                currPos = target
+                continue
 
-        slices = accelSlices * 2.0 + flatSlices
-        self._debug("slices to do", slices)
-        self._debug("accelSlices", accelSlices)
-        self._debug("flatSlices", flatSlices)
+            self._debug("-- segment", seg_index)
+            self._debug("from", *points[seg_index])
+            self._debug("to", *target)
+            self._debug("vect", *seg_vect)
+            self._debug("distance to travel", distance)
 
-        # Acceleration/deceleration in respective axes
-        accelVect = (accelf * vect) / distance
-        self._debug("accelXYZ", *accelVect)
+            v_start = float(waypoint_speeds[seg_index])
+            v_end = float(waypoint_speeds[seg_index + 1])
 
-        # Vectors in respective axes to complete acceleration/deceleration
-        segmentAccel = accelVect * pow(timeToAccel, 2) / 2.0
-        self._debug("segmentAccelXYZ", *segmentAccel)
+            # Compute the peak speed possible for this segment.
+            # If the segment is too short for a flat section, v_peak is reduced.
+            v_peak_sq = accelf * distance + 0.5 * (v_start * v_start + v_end * v_end)
+            v_peak = min(maxVel, math.sqrt(max(v_peak_sq, 0.0)))
 
-        # Maximum velocity in respective axes for the segment with constant velocity
-        maxVelVect = (maxVel * vect) / distance
-        self._debug("maxVelXYZ", *maxVelVect)
+            d_accel = max((v_peak * v_peak - v_start * v_start) / (2.0 * accelf), 0.0)
+            d_decel = max((v_peak * v_peak - v_end * v_end) / (2.0 * accelf), 0.0)
+            d_flat = max(distance - d_accel - d_decel, 0.0)
 
-        # Vectors in respective axes for the segment with constant velocity
-        segmentFlat = maxVelVect * timeFlat
-        self._debug("segmentFlatXYZ", *segmentFlat)
+            t_accel = (v_peak - v_start) / accelf if v_peak > v_start else 0.0
+            t_decel = (v_peak - v_end) / accelf if v_peak > v_end else 0.0
+            t_flat = d_flat / v_peak if v_peak > 0.0 else 0.0
 
-        segmentToolRotation = (toolRotation - self._toolRotation) / slices
-        self._debug("segmentToolRotation", segmentToolRotation)
+            slices_accel = int(round(t_accel * 50.0))
+            slices_flat = int(round(t_flat * 50.0))
+            slices_decel = int(round(t_decel * 50.0))
+            totalSlices = max(slices_accel + slices_flat + slices_decel, 1)
 
-        commands = 1
+            self._debug(f"{v_start=}", f"{v_end=}", f"{v_peak=}")
+            self._debug("slices", slices_accel, slices_flat, slices_decel)
+            self._debug("seg.dist.", d_accel, d_flat, d_decel)
+            self._debug("seg.times", t_accel, t_flat, t_decel)
 
-        while commands < slices:
-            self._debug("==============================")
-            self._debug("slice #", commands)
-            if commands <= accelSlices:  # If accelerating
-                t2half = pow(commands / 50.0, 2) / 2.0
-                nextPos = currPos + accelVect * t2half
-            elif commands >= accelSlices + flatSlices:  # If decelerating
-                t2half = pow((slices - commands) / 50.0, 2) / 2.0
-                nextPos = currPos + segmentAccel * 2.0 + segmentFlat - accelVect * t2half
-            else:  # Or else moving at maxSpeed
-                t = abs(commands - accelSlices) / 50.0
-                nextPos = currPos + segmentAccel + maxVelVect * t
-            self._debug("moving to", *nextPos)
+            dirVect = seg_vect / distance
 
-            nextToolRotation = self._toolRotation + (segmentToolRotation * commands)
-            self._debug("nextToolRotation", nextToolRotation)
+            commands = 1
+            while commands <= totalSlices:
+                if commands <= slices_accel and slices_accel > 0:
+                    # accelerate from v_start to v_peak
+                    t = commands / 50.0
+                    self._debug(f"  accelerating… {t=}")
+                    dist_now = v_start * t + 0.5 * accelf * t * t
+                    nextPos = currPos + dirVect * dist_now
 
-            baseAngle, rearAngle, frontAngle = self._kinematics.anglesFromCoordinates(*nextPos)
+                elif commands <= slices_accel + slices_flat:
+                    # constant velocity
+                    flat_cmd = commands - slices_accel
+                    t = flat_cmd / 50.0
+                    self._debug(f"  constant velocity… {t=}")
+                    nextPos = currPos + dirVect * d_accel + dirVect * (v_peak * t)
 
-            movedSteps, leftSteps = self._moveToAnglesSlice(baseAngle, rearAngle, frontAngle, nextToolRotation)
+                else:
+                    # decelerate from v_peak to v_end
+                    dec_cmd = commands - slices_accel - slices_flat
+                    t = dec_cmd / 50.0
+                    self._debug(f"  decelerating… {t=}")
+                    dist_back = v_peak * t - 0.5 * accelf * t * t
+                    nextPos = currPos + dirVect * d_accel + dirVect * d_flat + dirVect * dist_back
 
-            self._debug("moved", *movedSteps, "steps")
-            self._debug("leftovers", *leftSteps)
+                if False:
+                    print_arr("currPos:", currPos)
+                    print_arr("nextPos:", nextPos, target)
+                    print_arr("diff:", nextPos-currPos)
 
-            commands += 1
+                nextToolRotation = self._toolRotation + ((toolRotation - self._toolRotation) * (commands / float(totalSlices)))
+                self._debug("nextToolRotation", nextToolRotation)
 
-            self._baseSteps += movedSteps[0]
-            self._rearSteps += movedSteps[1]
-            self._frontSteps += movedSteps[2]
+                angles = self._kinematics.anglesFromCoordinates(nextPos, debug=False)
+                movedSteps, leftSteps = self._moveToAnglesSlice(np.array(angles), nextToolRotation, debug=False)
 
-            currBaseAngle = piTwo * self._baseSteps / baseActualStepsPerRevolution
-            currRearAngle = piHalf - piTwo * self._rearSteps / rearArmActualStepsPerRevolution
-            currFrontAngle = piTwo * self._frontSteps / frontArmActualStepsPerRevolution
-            cX, cY, cZ = self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle)
-            if self._plotter:
-                self._plotter.add_move_data(np.array((cX, cY, cZ)), nextPos)
+                self._debug("moved", *movedSteps, "steps")
+                self._debug("leftovers", *leftSteps)
+
+                commands += 1
+
+                self._baseSteps += movedSteps[0]
+                self._rearSteps += movedSteps[1]
+                self._frontSteps += movedSteps[2]
+
+                if self._plotter:
+                    self._plotter.add_move_data(self.pos, nextPos)
+
+            currPos = self.pos
 
         self._toolRotation = toolRotation
 
