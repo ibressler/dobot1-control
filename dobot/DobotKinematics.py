@@ -51,52 +51,62 @@ class DobotKinematics:
         x = radius * math.cos(baseAngle)
         y = radius * math.sin(baseAngle)
         z = heightFromGround - lengthFrontArm * math.sin(frontArmAngle) + lengthRearArm * math.sin(rearArmAngle)
+        return x, y, z
 
-        return (x, y, z)
-
-    def anglesFromCoordinates(self, x, y, z):
+    def anglesFromCoordinates(self, xyz, debug=False):
         """
         http://www.learnaboutrobots.com/inverseKinematics.htm
         """
         # Radius to the center of the tool.
-        radiusTool = math.sqrt(pow(x, 2) + pow(y, 2))
-        self._debug("radiusTool", radiusTool)
+        radiusTool = math.sqrt(pow(xyz[0], 2) + pow(xyz[1], 2))
+        if debug:
+            self._debug("radiusTool", radiusTool)
         # Radius to joint3.
         radius = radiusTool - distanceTool
-        self._debug("radius", radius)
-        baseAngle = math.atan2(y, x)
-        self._debug("ik base angle", baseAngle)
+        if debug:
+            self._debug("radius", radius)
+        baseAngle = math.atan2(xyz[1], xyz[0])
+        if debug:
+            self._debug("ik base angle", baseAngle)
         # X coordinate of joint3.
         jointX = radius * math.cos(baseAngle)
-        self._debug("jointX", jointX)
+        if debug:
+            self._debug("jointX", jointX)
         # Y coordinate of joint3.
         jointY = radius * math.sin(baseAngle)
-        self._debug("jointY", jointY)
-        actualZ = z - heightFromGround
-        self._debug("actualZ", actualZ)
+        if debug:
+            self._debug("jointY", jointY)
+        actualZ = xyz[2] - heightFromGround
+        if debug:
+            self._debug("actualZ", actualZ)
         # Imaginary segment connecting joint1 with joint2, squared.
         hypotenuseSquared = pow(actualZ, 2) + pow(radius, 2)
         hypotenuse = math.sqrt(hypotenuseSquared)
-        self._debug("hypotenuse", hypotenuse)
-        self._debug("hypotenuseSquared", hypotenuseSquared)
+        if debug:
+            self._debug("hypotenuse", hypotenuse)
+            self._debug("hypotenuseSquared", hypotenuseSquared)
 
         q1 = math.atan2(actualZ, radius)
-        self._debug("q1", q1)
+        if debug:
+            self._debug("q1", q1)
         q2 = math.acos(
             (lengthRearSquared - lengthFrontSquared + hypotenuseSquared) / (2.0 * lengthRearArm * hypotenuse)
         )
-        self._debug("q2", q2)
+        if debug:
+            self._debug("q2", q2)
         rearAngle = piHalf - (q1 + q2)
-        self._debug("ik rear angle", rearAngle)
+        if debug:
+            self._debug("ik rear angle", rearAngle)
         frontAngle = piHalf - (
             math.acos(
                 (lengthRearSquared + lengthFrontSquared - hypotenuseSquared) / (2.0 * lengthRearArm * lengthFrontArm)
             )
             - rearAngle
         )
-        self._debug("ik front angle", frontAngle)
+        if debug:
+            self._debug("ik front angle", frontAngle)
 
-        return (baseAngle, rearAngle, frontAngle)
+        return baseAngle, rearAngle, frontAngle
 
     @staticmethod
     def get_distance_from_origin_to_cartesian_point_3D(x, y, z):
