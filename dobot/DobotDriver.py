@@ -73,7 +73,7 @@ class DobotDriver:
             time.sleep(2)
         except SerialException as e:
             print(e)
-            exit(1)
+            sys.exit(1)
 
         ret = (0, 0)
         i = 200
@@ -82,7 +82,7 @@ class DobotDriver:
             i -= 1
         if i == 0:
             print("Cannot get board version. Giving up")
-            exit(1)
+            sys.exit(1)
 
         self._ramps = bool(ret[1])
         if self._ramps:
