@@ -32,6 +32,8 @@ License: MIT
 """
 
 from pathlib import Path
+import time
+
 from dobot import DobotDriver
 from dobot import DobotKinematics
 
@@ -50,6 +52,7 @@ def toEndEffectorHeight(rear, front):
 	return ret[2]
 
 while True:
+	ts = time.time()
 	ret = driver.GetAccelerometers()
 	if ret[0]:
 		if driver.isFpga():
@@ -64,4 +67,7 @@ while True:
 				ret[1], ret[2], ret[3], ret[4], ret[5], ret[6]))
 	else:
 		print('Error occurred reading data')
-
+	# limit queries to 4x per second
+	tdelta = time.time() - ts
+	if tdelta < 0.25:
+		time.sleep(0.25 - tdelta)
