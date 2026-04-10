@@ -352,6 +352,27 @@ class Dobot:
 
     def __init__(self, port, rate=115200, timeout=0.025, debug=False, plot=False, fake=False,
                  jointMaxAccelerations=None):
+        """
+        Initializes the Dobot control class with parameters for serial communication, debugging,
+        plotting options, and maximum joint accelerations. Also initializes internal configurations
+        like kinematics, driver setup, and optional fake mode for testing.
+
+        :param port: The serial port to which the Dobot is connected.
+        :type port: str
+        :param rate: The baud rate for serial communication. Defaults to 115200.
+        :type rate: int, optional
+        :param timeout: The timeout duration (in seconds) for serial communication. Defaults to 0.025.
+        :type timeout: float, optional
+        :param debug: Enables debugging mode. Defaults to False.
+        :type debug: bool, optional
+        :param plot: Enables plotting via the DobotPlotter. Defaults to False.
+        :type plot: bool, optional
+        :param fake: Enables fake mode for testing without real hardware. Defaults to False.
+        :type fake: bool, optional
+        :param jointMaxAccelerations: Per-joint acceleration limits in joint units per second squared.
+            If none are provided, defaults to (1.0, 1.0, 1.0), which are in degrees per second squared.
+        :type jointMaxAccelerations: tuple[float, float, float], optional
+        """
         self._debugOn = debug
         self._fake = fake
         self._driver = DobotDriver(port, rate)
