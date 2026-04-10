@@ -82,12 +82,9 @@ class DobotPlotter:
         self._coords = []
         self._next = []
         self._diff = []
-        self._slice_diff = []
         self._slice_actual = []
 
-    def add_slice_data(self, diffs, actual_steps):
-        #, rear_diff, actual_steps_rear, front_diff, actual_steps_front):
-        self._slice_diff.append(diffs)
+    def add_slice_data(self, actual_steps):
         self._slice_actual.append(actual_steps)
 
     def add_move_data(self, coord:np.ndarray, nextPos:np.ndarray):
@@ -133,13 +130,6 @@ class DobotPlotter:
         for i, axis in enumerate(['base', 'rear', 'front']):
             plt.plot(data[:,i], **get_kwargs(axis))
         plt.legend()
-
-        # plt.subplot(3, 1, 3)
-        # plt.title("Slice Data (Diff Steps)")
-        # data = np.stack(self._slice_diff)
-        # for i, axis in enumerate(['base', 'rear', 'front']):
-        #     plt.plot(data[:,i], **get_kwargs(axis))
-        # plt.legend()
 
         # make the y ticks integers, not floats
         yint = []
@@ -476,7 +466,7 @@ class Dobot:
         currFrontAngle = piTwo * self._frontSteps / frontArmActualStepsPerRevolution
         return np.array(self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle), dtype=float)
 
-    def _moveToAnglesSlice(self, angles, toolRotation, debug=False):
+    def _prepareAnglesSlice(self, angles, debug=False):
         multipliers = np.array([
             baseActualStepsPerRevolution,
             rearArmActualStepsPerRevolution,
@@ -529,19 +519,19 @@ class Dobot:
         # 	cmdFrontVal, _ignore, _ignore = self._driver.stepsToCmdValFloat(frontDiffAbs + backlash)
         # 	self._lastFrontDirection = frontDir
 
+        actualSteps *= signs
+        leftSteps *= signs
+
+        return cmdVals, dirs, actualSteps, leftSteps
+
+    def _moveToAnglesSlice(self, cmdVals, dirs, toolRotation):
+
         if not self._fake:
             # Repeat until the command is queued. May not be queued if the queue is full.
             ret = (0, 0)
             while not ret[1]:
                 self.steps = self._driver.Steps(cmdVals, dirs, self._gripper, int(toolRotation))
                 ret = self.steps
-
-        actualSteps *= signs
-        leftSteps *= signs
-        if self._plotter:
-            self._plotter.add_slice_data(diffs, actualSteps)
-
-        return actualSteps, leftSteps
 
     def freqToCmdVal(self, freq):
         """
@@ -731,11 +721,18 @@ class Dobot:
                         (toolRotation - self._toolRotation) * (commands / float(totalSlices))
                 )
 
-                movedSteps, leftSteps = self._moveToAnglesSlice(next_joint_pos, nextToolRotation, debug=False)
-                self._debug("moved", *movedSteps, "steps")
+                cmdVals, dirs, movedSteps, leftSteps = self._prepareAnglesSlice(next_joint_pos, debug=True)
+                skip_this_slice = np.all(movedSteps == 0)
+                self._debug("steps to move:", *movedSteps,
+                            "skipped!" if skip_this_slice else "")
                 self._debug("leftovers", *leftSteps)
-
                 commands += 1
+                if skip_this_slice:
+                    continue
+
+                self._moveToAnglesSlice(cmdVals, dirs, nextToolRotation)
+                if self._plotter:
+                    self._plotter.add_slice_data(movedSteps)
 
                 self._baseSteps += movedSteps[0]
                 self._rearSteps += movedSteps[1]
@@ -744,8 +741,6 @@ class Dobot:
                 if self._plotter:
                     nextPos = np.array(self._kinematics.coordinatesFromAngles(*next_joint_pos), dtype=float)
                     self._plotter.add_move_data(self.pos, nextPos)
-
-            #currPos = points[seg_index + 1]
 
         self._toolRotation = toolRotation
 
