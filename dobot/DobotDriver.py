@@ -40,7 +40,6 @@ CMD_PUMP_ON = 10
 CMD_VALVE_ON = 11
 CMD_BOARD_VERSION = 12
 
-piToDegrees = 180.0 / math.pi
 halfPi = math.pi / 2.0
 
 
@@ -384,12 +383,6 @@ class DobotDriver:
         if val == 0:
             return (self._stopSeq, 0, steps)
         return (self.reverseBits32(val), actualSteps, steps - actualSteps)
-
-    def accelToAngle(self, val, offset):
-        return self.accelToRadians(val, offset) * piToDegrees
-
-    def accel3DXToAngle(self, x, y, z):
-        return self.accel3DXToRadians(x, y, z) * piToDegrees
 
     @staticmethod
     def accelToRadians(val, offset):

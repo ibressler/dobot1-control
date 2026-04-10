@@ -34,6 +34,8 @@ License: MIT
 from pathlib import Path
 import time
 
+import numpy as np
+
 from dobot import DobotDriver
 from dobot import DobotKinematics
 
@@ -56,14 +58,14 @@ while True:
 	ret = driver.GetAccelerometers()
 	if ret[0]:
 		if driver.isFpga():
-			print("Rear arm: {0:10f} | Front arm: {1:10f} | End effector height: {2:10f} | Raw rear arm: {3:4d} | Raw front arm: {4:4d}".format(\
-				driver.accelToAngle(ret[1], offsets[0]), driver.accelToAngle(ret[4], offsets[1]),\
-				toEndEffectorHeight(driver.accelToRadians(ret[1], offsets[0]), driver.accelToRadians(ret[4], offsets[1])),\
+			print("Rear arm: {0:10f}° | Front arm: {1:10f}° | End effector height: {2:10f} | Raw rear arm: {3:4d} | Raw front arm: {4:4d}".format(
+				np.rad2deg(driver.accelToRadians(ret[1], offsets[0])), np.rad2deg(driver.accelToRadians(ret[4], offsets[1])),
+				toEndEffectorHeight(driver.accelToRadians(ret[1], offsets[0]), driver.accelToRadians(ret[4], offsets[1])),
 				ret[1], ret[4]))
 		else:
-			print("Rear arm: {0:6.2f} | Front arm: {1:6.2f} | End effector height: {2:7.2f} | Raw rear arm: {3:6d} {4:6d} {5:6d} | Raw front arm: {6:6d} {7:6d} {8:6d}".format(\
-				driver.accel3DXToAngle(ret[1], ret[2], ret[3]), -driver.accel3DXToAngle(ret[4], ret[5], ret[6]),\
-				toEndEffectorHeight(driver.accel3DXToRadians(ret[1], ret[2], ret[3]), -driver.accel3DXToRadians(ret[4], ret[5], ret[6])),\
+			print("Rear arm: {0:6.2f} | Front arm: {1:6.2f} | End effector height: {2:7.2f} | Raw rear arm: {3:6d} {4:6d} {5:6d} | Raw front arm: {6:6d} {7:6d} {8:6d}".format(
+				np.rad2deg(driver.accel3DXToRadians(ret[1], ret[2], ret[3])), -np.rad2deg(driver.accel3DXToRadians(ret[4], ret[5], ret[6])),
+				toEndEffectorHeight(driver.accel3DXToRadians(ret[1], ret[2], ret[3]), -driver.accel3DXToRadians(ret[4], ret[5], ret[6])),
 				ret[1], ret[2], ret[3], ret[4], ret[5], ret[6]))
 	else:
 		print('Error occurred reading data')
