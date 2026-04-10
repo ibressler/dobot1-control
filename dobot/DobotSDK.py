@@ -290,18 +290,16 @@ class SegmentParams:
             print_arr("phase_duration", phase_duration)
             print_arr("effective_distance", effective_distance)
 
-        mismatch_orig, mismatch_new, mismatch_prev = None, None, None
-        # factor_low, factor_high = 0.1, 1.0
-        # factor, step = 2.0, .1
-        def mismatch_ok(mismatch):
-            return np.abs(mismatch) < 1e-5
-        factors = [0., .5]
+        mismatch_orig, mismatch_new = None, None
+        # helpers for calculating an exact mismatch factor
+        factors = [0., 1.]
         mismatch = []
+        mismatch_largest_idx = 0
         for i in range(3):
             eff_dist = effective_distance
             if mismatch_orig is not None and mismatch_new is not None:
                 non_zero_boundary = (np.abs(v_start) > 1e-9) | (np.abs(v_end) > 1e-9)
-                needs_closure = np.logical_and(non_zero_boundary, np.logical_not(mismatch_ok(mismatch_new)))
+                needs_closure = np.logical_and(non_zero_boundary, np.logical_not(np.abs(mismatch_new) < 1e-5))
                 if np.any(needs_closure):
                     eff_dist = np.maximum(effective_distance + factors[i]*mismatch_orig, 0.0)
                 else:  # nothing to do, no closure needed
@@ -313,7 +311,10 @@ class SegmentParams:
             # by letting the decel phase absorb the remaining mismatch.
             reconstructed = np.sign(delta) * phase_distances.sum(axis=0)
             mismatch_new = np.abs(delta) - np.abs(reconstructed)
-            mismatch.append(mismatch_new.sum())
+            if mismatch_orig is None:
+                mismatch_orig = mismatch_new
+                mismatch_largest_idx = np.argmax(np.abs(mismatch_orig))
+            mismatch.append(mismatch_new[mismatch_largest_idx])
             if debug:
                 print_arr("reconstructed", reconstructed)
                 print_arr("mismatch", [str(mismatch_new), str(mismatch[-1]), factors[i]])
@@ -324,14 +325,12 @@ class SegmentParams:
                     where=np.abs(delta) >= 0.0,
                 )
                 print_arr("rel_mismatch", (f"{joint_rel * 100.0:.2f}%" for joint_rel in rel_mismatch))
-            if mismatch_orig is None:
-                mismatch_orig = mismatch_new
             if len(mismatch) > 1:
                 factor = 0.7  # typically between 60 % and 75% of the mismatch
                 if mismatch[0]-mismatch[1] != 0:
-                    factor = mismatch[0]*(factors[1]-factors[0]) / (mismatch[0]-mismatch[1])
-                factors.append(np.clip(factor, 0, 1))
-                print(f"Applying {factors[-1]} mismatch factor.")
+                    factor = (mismatch[0])*(factors[1]-factors[0]) / (mismatch[0]-mismatch[1])
+                factors.append(factor)
+                print(f"Applying {factors[-1]} mismatch factor.", f"({factor})" if factor > 1 else "")
             if not fix_mismatch:
                 break
 
