@@ -467,16 +467,16 @@ class Dobot:
         return np.array(self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle), dtype=float)
 
     def _prepareAnglesSlice(self, angles, debug=False):
+        currSteps = np.array([self._baseSteps, self._rearSteps, self._frontSteps])
         multipliers = np.array([
             baseActualStepsPerRevolution,
             rearArmActualStepsPerRevolution,
             frontArmActualStepsPerRevolution
         ])
         stepLocations = angles * multipliers / piTwo
+        diffs = stepLocations - currSteps
         # rear and front are absolute in the original code
         stepLocations[1:] = np.abs(stepLocations[1:])
-        currSteps = np.array([self._baseSteps, self._rearSteps, self._frontSteps])
-        diffs = stepLocations - currSteps
 
         if debug:
             print_arr("currSteps:", currSteps)
