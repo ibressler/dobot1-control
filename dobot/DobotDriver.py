@@ -45,6 +45,18 @@ halfPi = math.pi / 2.0
 
 class DobotDriver:
     def __init__(self, comport, rate=115200):
+        """
+        Initializes a serial communication object.
+
+        This class is responsible for setting up and managing a serial port
+        connection given a communication port and a baud rate. It facilitates
+        communication between the Dobot controller and your PC.
+
+        :param comport: The name or path (on Linux) of the communication port (e.g., COM3, ttyUSB0, etc.).
+        :type comport: str
+        :param rate: The baud rate for the communication. Defaults to 115200.
+        :type rate: int
+        """
         self._lock = threading.Lock()
         self._comport = comport
         self._rate = rate
