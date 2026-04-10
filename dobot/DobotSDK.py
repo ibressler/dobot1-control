@@ -28,7 +28,6 @@ License: MIT
 import sys
 import math
 import numpy as np
-from tornado.log import access_log
 
 from dobot.DobotDriver import DobotDriver
 from dobot.DobotKinematics import DobotKinematics, piHalf, piTwo
@@ -37,11 +36,8 @@ from dobot.DobotKinematics import DobotKinematics, piHalf, piTwo
 if sys.version_info > (3,):
     long = int
 
-# See calibrate-accelerometers.py for details
-accelOffsets = (1024, 1024)
-
 # Backlash in the motor reduction gears is actually 22 steps, but 5 is visually unnoticeable.
-# It is a horrible thing to compensate a bad backlash in software, but the only other
+# It is a horrible thing to compensate for a bad backlash in software, but the only other
 # option is to physically rebuild Dobot to fix this problem.
 backlash = 5
 
@@ -350,6 +346,10 @@ class SegmentParams:
                 print_arr("v_start", self.v_start)
 
 class Dobot:
+    # See calibrate-accelerometers.py for details
+    _accelOffsetRear = 1024
+    _accelOffsetFront = 1024
+
     def __init__(self, port, rate=115200, timeout=0.025, debug=False, plot=False, fake=False,
                  jointMaxAccelerations=None):
         self._debugOn = debug
@@ -383,25 +383,37 @@ class Dobot:
             self._rearSteps = long(0)
             self._frontSteps = long(0)
         else:
-            self.InitializeAccelerometers()
+            self._init_accelerometers()
 
     def _debug(self, *args):
         if self._debugOn:
             print(*args)
 
-    def InitializeAccelerometers(self):
+    def _get_accelerometers_raw(self):
+        attempts = 10
+        ret = (0, 0, 0, 0, 0, 0, 0)
+        while attempts:
+            ret = self._driver.GetAccelerometers()
+            if ret[0]:
+                break
+            attempts -= 1
+        return ret
+
+    def _rear_angle_fpga(self, sensorValue):
+        return (math.pi * .5) - self._driver.accelToRadians(sensorValue, self._accelOffsetRear)
+
+    def _front_angle_fpga(self, sensorValue):
+        return self._driver.accelToRadians(sensorValue, self._accelOffsetFront)
+
+    def _init_accelerometers(self):
         print("--=========--")
         print("Initializing accelerometers")
         if self._driver.isFpga():
             # In FPGA v1.0 SPI accelerometers are read only when Arduino boots. The readings
             # are already available, so read once.
-            ret = (0, 0, 0, 0, 0, 0, 0)
-            while not ret[0]:
-                ret = self._driver.GetAccelerometers()
-            accelRearX = ret[1]
-            accelFrontX = ret[4]
-            rearAngle = piHalf - self._driver.accelToRadians(accelRearX, accelOffsets[0])
-            frontAngle = self._driver.accelToRadians(accelFrontX, accelOffsets[1])
+            _, accelRearX, _, _, accelFrontX, _, _ = self._get_accelerometers_raw()
+            rearAngle = self._rear_angle_fpga(accelRearX)
+            frontAngle = self._front_angle_fpga(accelFrontX)
         else:
             # In RAMPS accelerometers are on I2C bus and can be read at any time. We need to
             # read them multiple times to get average as MPU-6050 has greater resolution but is noisy.
@@ -416,20 +428,14 @@ class Dobot:
             accelFrontZ = 0
             successes = 0
             for _ in range(20):
-                ret = (0, 0, 0, 0, 0, 0, 0)
-                attempts = 10
-                while attempts:
-                    ret = self._driver.GetAccelerometers()
-                    if ret[0]:
-                        successes += 1
-                        accelRearX += ret[1]
-                        accelRearY += ret[2]
-                        accelRearZ += ret[3]
-                        accelFrontX += ret[4]
-                        accelFrontY += ret[5]
-                        accelFrontZ += ret[6]
-                        break
-                    attempts -= 1
+                ret = self._get_accelerometers_raw()
+                successes += 1
+                accelRearX += ret[1]
+                accelRearY += ret[2]
+                accelRearZ += ret[3]
+                accelFrontX += ret[4]
+                accelFrontY += ret[5]
+                accelFrontZ += ret[6]
             if successes > 0:
                 divisor = float(successes)
                 rearAngle = piHalf - self._driver.accel3DXToRadians(
@@ -444,6 +450,8 @@ class Dobot:
                 print("Assuming rear arm vertical and front arm horizontal")
                 rearAngle = 0
                 frontAngle = -piHalf
+        print(f"Angles read: rear= {np.rad2deg(rearAngle):.3f}°, front= {np.rad2deg(frontAngle):.3f}°")
+        print("    [ expecting: rear @vertical -> 0°, front @horizontal -> 0° ]")
         self._baseSteps = long(0)
         self._rearSteps = long((rearAngle / piTwo) * rearArmActualStepsPerRevolution + 0.5)
         self._frontSteps = long((frontAngle / piTwo) * frontArmActualStepsPerRevolution + 0.5)
