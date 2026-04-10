@@ -30,19 +30,19 @@ Version: 1.2.2
 
 License: MIT
 """
-import math
 
+from pathlib import Path
 from dobot import DobotDriver
 from dobot import DobotKinematics
 
 # driver = DobotDriver('COM4')
-driver = DobotDriver('/dev/tty.usbmodem1421')
+driver = DobotDriver(str(next(Path("/dev").glob("ttyACM*"))))
 driver.Open()
 # driver.Open(timeout=0.3)
 kinematics = DobotKinematics()
 
 # Offsets must be found using this tool for your Dobot once
-# (rear arm, frontarm)
+# (rear arm, front arm)
 offsets = (1024, 1024)
 
 def toEndEffectorHeight(rear, front):
