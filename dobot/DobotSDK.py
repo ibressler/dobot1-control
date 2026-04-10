@@ -67,6 +67,8 @@ frontArmActualStepsPerRevolution = (
 )
 
 BASE, REAR, FRONT = range(3)
+ACCEL, FLAT, DECEL = range(3)
+JOINT_NAME = ['base', 'rear', 'front']
 
 class DobotPlotter:
     def __init__(self):
@@ -132,12 +134,12 @@ class DobotPlotter:
             plt.plot(data[:,i], **get_kwargs(axis))
         plt.legend()
 
-        plt.subplot(3, 1, 3)
-        plt.title("Slice Data (Diff Steps)")
-        data = np.stack(self._slice_diff)
-        for i, axis in enumerate(['base', 'rear', 'front']):
-            plt.plot(data[:,i], **get_kwargs(axis))
-        plt.legend()
+        # plt.subplot(3, 1, 3)
+        # plt.title("Slice Data (Diff Steps)")
+        # data = np.stack(self._slice_diff)
+        # for i, axis in enumerate(['base', 'rear', 'front']):
+        #     plt.plot(data[:,i], **get_kwargs(axis))
+        # plt.legend()
 
         # make the y ticks integers, not floats
         yint = []
@@ -149,9 +151,214 @@ class DobotPlotter:
         plt.tight_layout()
         plt.show()
 
+def valueToStr(v):
+    s = ""
+    if isinstance(v, (float, np.floating)):
+        s = f"{v: 7.4f}"
+    elif isinstance(v, (bool, np.bool_)):
+        s = f"{str(v):>7s}"
+    elif isinstance(v, (int, np.integer)):  # int?
+        s = f"{v:>7d}"
+    else:
+        s = f"{v:>7s}"  # string?
+    return s
+
+def arrayToStr(arr):
+    if arr is None:
+        return "None"
+    try:
+        return f"({",".join([valueToStr(v) for v in arr])})"
+    except TypeError:
+        return valueToStr(arr)
+
+def arraysToStr(*args):
+    return [arrayToStr(arr) for arr in args]
 
 def print_arr(prefix, *args):
-    print(f"{str(prefix):>15s}", *[f"({",".join([f"{v: 7.4f}" if isinstance(v, (float, np.floating)) else f"{v:5d}" for v in arr])})" for arr in args])
+    print(f"{str(prefix):>15s}", *arraysToStr(*args))
+
+class SegmentParams:
+    start = None
+    end = None
+    delta = None
+    v_start = None
+    v_end = None
+    a_max = None
+    phase_duration = None
+    joint_v_peak = None
+    joint_accel = None
+    joint_decel = None
+    phase_distances = None
+
+    def v_from(self, isforward):
+        return self.v_start if isforward else self.v_end
+    def set_v_from(self, isforward, v):
+        if isforward:
+            self.v_start = v
+        else:
+            self.v_end = v
+    def v_to(self, isforward):
+        return self.v_end if isforward else self.v_start
+    def set_v_to(self, isforward, v):
+        if isforward:
+            self.v_end = v
+        else:
+            self.v_start = v
+
+    def __init__(self, start, end, v_start, v_end, v_max, a_max):
+        self.start = start
+        self.end = end
+        self.delta = end - start
+        self.v_start = v_start
+        self.v_end = v_end
+        self.v_max = v_max
+        self.a_max = a_max
+
+    def __str__(self):
+        return "\n".join((
+            ", ".join((f"{name}: {arrayToStr(getattr(self, name))}" for name in ("start", "end", "delta"))),
+            ", ".join((f"{name}: {arrayToStr(getattr(self, name))}" for name in ("v_start", "v_end")))))
+
+    @staticmethod
+    def get_phase_durations(delta, v_start, v_end, v_max, a_max, debug=False):
+        # 1. Calculate theoretical max possible speed for a triangular profile
+        v_peak_theory = np.sqrt(a_max * np.abs(delta) + 0.5 * (v_start * v_start + v_end * v_end))
+        # 2. Cap this peak speed with the external v_max
+        v_peak = np.minimum(v_peak_theory, v_max)
+        if debug:
+            print_arr("v_peak, theory, v_max", v_peak, v_peak_theory, v_max)
+        # calc max required time for each joint in each phase of this segment
+        phase_distances = np.zeros((3, 3), dtype=float)
+        phase_duration = np.zeros((3, 3), dtype=float)
+        # Distance covered during accel/decel at this (possibly capped) v_peak
+        phase_distances[ACCEL] = np.maximum((v_peak * v_peak - v_start * v_start) / (2.0 * a_max), 0.0)
+        phase_distances[DECEL] = np.maximum((v_peak * v_peak - v_end * v_end) / (2.0 * a_max), 0.0)
+        # The remaining distance is covered in the flat phase, if v_peak was capped, this will be > 0
+        phase_distances[FLAT] = np.maximum(np.abs(delta) - phase_distances[ACCEL] - phase_distances[DECEL], 0.0)
+        # Calculate durations based on the final v_peak and phase distances
+        phase_duration[ACCEL] = np.where(v_peak > v_start, (v_peak - v_start) / a_max, 0.0)
+        phase_duration[FLAT] = np.divide(
+            phase_distances[FLAT],
+            v_peak,
+            out=np.zeros_like(phase_distances[FLAT]),
+            where=v_peak > 0.0,
+        )
+        phase_duration[DECEL] = np.where(v_peak > v_end, (v_peak - v_end) / a_max, 0.0)
+        # Each joint drives its own phase duration, use the maximum.
+        phase_duration = phase_duration.max(axis=1)
+        #return phase_duration
+        return np.ceil(phase_duration*50)/50.  # avoid rounding errors later
+
+    @staticmethod
+    def calc_profile(effective_distance, v_start, v_end, phase_duration, debug=False):
+        # Reconstruct the synchronized peak velocity from the total segment distance.
+        effective_duration = (
+                0.5 * phase_duration[ACCEL] + phase_duration[FLAT] + 0.5 * phase_duration[DECEL]
+        )
+        joint_v_peak = np.maximum(np.divide(
+            effective_distance,
+            effective_duration,
+            out=np.zeros_like(effective_distance),
+            where=effective_duration > 0.0,
+        ), 0.0)
+        joint_accel = np.maximum(np.divide(
+            joint_v_peak - v_start,
+            phase_duration[ACCEL],
+            out=np.zeros_like(joint_v_peak),
+            where=phase_duration[ACCEL] > 0.0,
+        ), 0.0)
+        joint_decel = np.maximum(np.divide(
+            joint_v_peak - v_end,
+            phase_duration[DECEL],
+            out=np.zeros_like(joint_v_peak),
+            where=phase_duration[DECEL] > 0.0,
+        ), 0.0)
+        phase_distances = np.zeros((3, 3), dtype=float)
+        phase_distances[ACCEL] = (
+                v_start * phase_duration[ACCEL]
+                + 0.5 * joint_accel * phase_duration[ACCEL] * phase_duration[ACCEL]
+        )
+        phase_distances[DECEL] = (
+                joint_v_peak * phase_duration[DECEL]
+                + 0.5 * (-joint_decel) * phase_duration[DECEL] * phase_duration[DECEL]
+        )
+        phase_distances[FLAT] = joint_v_peak * phase_duration[FLAT]
+        if debug:
+            print_arr("phase_distances", *(phase_distances[x] for x in range(3)))
+            print_arr("joint_v_peak", joint_v_peak)
+            print_arr("joint_accel", joint_accel)
+            print_arr("joint_decel", joint_decel)
+        return joint_v_peak, joint_accel, joint_decel, phase_distances
+
+    @staticmethod
+    def _solve_common(delta, v_start, v_end, v_max, a_max, fix_mismatch=False, debug=False):
+        phase_duration = SegmentParams.get_phase_durations(delta, v_start, v_end, v_max, a_max, debug=debug)
+        effective_distance = np.maximum(np.abs(delta) - 0.5 * (
+                v_start * phase_duration[ACCEL] + v_end * phase_duration[DECEL]
+        ), 0.0)  # must not be negative
+        if debug:
+            print_arr("phase_duration", phase_duration)
+            print_arr("effective_distance", effective_distance)
+
+        mismatch_orig, mismatch_new, mismatch_prev = None, None, None
+        # factor_low, factor_high = 0.1, 1.0
+        # factor, step = 2.0, .1
+        def mismatch_ok(mismatch):
+            return np.abs(mismatch) < 1e-5
+        factors = [0., .5]
+        mismatch = []
+        for i in range(3):
+            eff_dist = effective_distance
+            if mismatch_orig is not None and mismatch_new is not None:
+                non_zero_boundary = (np.abs(v_start) > 1e-9) | (np.abs(v_end) > 1e-9)
+                needs_closure = np.logical_and(non_zero_boundary, np.logical_not(mismatch_ok(mismatch_new)))
+                if np.any(needs_closure):
+                    eff_dist = np.maximum(effective_distance + factors[i]*mismatch_orig, 0.0)
+                else:  # nothing to do, no closure needed
+                    break
+            joint_v_peak, joint_accel, joint_decel, phase_distances = SegmentParams.calc_profile(
+                eff_dist, v_start, v_end, phase_duration, debug=debug)
+
+            # If a joint has no flat phase and non-zero boundary velocities, force exact closure
+            # by letting the decel phase absorb the remaining mismatch.
+            reconstructed = np.sign(delta) * phase_distances.sum(axis=0)
+            mismatch_new = np.abs(delta) - np.abs(reconstructed)
+            mismatch.append(mismatch_new.sum())
+            if debug:
+                print_arr("reconstructed", reconstructed)
+                print_arr("mismatch", [str(mismatch_new), str(mismatch[-1]), factors[i]])
+                rel_mismatch = np.divide(
+                    np.abs(mismatch_new),
+                    np.maximum(np.abs(delta), 1e-9),
+                    out=np.zeros_like(mismatch_new),
+                    where=np.abs(delta) >= 0.0,
+                )
+                print_arr("rel_mismatch", (f"{joint_rel * 100.0:.2f}%" for joint_rel in rel_mismatch))
+            if mismatch_orig is None:
+                mismatch_orig = mismatch_new
+            if len(mismatch) > 1:
+                factor = 0.7  # typically between 60 % and 75% of the mismatch
+                if mismatch[0]-mismatch[1] != 0:
+                    factor = mismatch[0]*(factors[1]-factors[0]) / (mismatch[0]-mismatch[1])
+                factors.append(np.clip(factor, 0, 1))
+                print(f"Applying {factors[-1]} mismatch factor.")
+            if not fix_mismatch:
+                break
+
+        return phase_duration, joint_v_peak, joint_accel, joint_decel, phase_distances
+
+    def update(self, v_max, isforward=True, **kwargs):
+        (self.phase_duration, self.joint_v_peak, self.joint_accel, self.joint_decel, self.phase_distances
+         ) = self._solve_common(self.delta, self.v_start, self.v_end, v_max, self.a_max, **kwargs)
+        if isforward:
+            self.v_end = self.joint_v_peak - self.joint_decel * self.phase_duration[DECEL]
+            if kwargs.get("debug", False):
+                print_arr("v_end", self.v_end)
+        else:
+            # Backward-pass variant: keep v_end fixed and solve the start side consistently.
+            self.v_start = self.joint_v_peak - self.joint_accel * self.phase_duration[ACCEL]
+            if kwargs.get("debug", False):
+                print_arr("v_start", self.v_start)
 
 class Dobot:
     def __init__(self, port, rate=115200, timeout=0.025, debug=False, plot=False, fake=False,
@@ -351,12 +558,6 @@ class Dobot:
         return 0
 
     @staticmethod
-    def _normalize_move_targets(targets):
-        if isinstance(targets, np.ndarray) and targets.ndim == 1:
-            return [targets.astype(float)]
-        return [np.array(t, dtype=float) for t in targets]
-
-    @staticmethod
     def _unwrap_angles(angles_list):
         """
         Keep angle sequences continuous across +/-pi boundaries.
@@ -376,124 +577,37 @@ class Dobot:
             out.append(cur)
         return out
 
-    @staticmethod
-    def _signf(value):
-        if value > 0.0:
-            return 1
-        if value < 0.0:
-            return -1
-        return 0
-
-    def _plan_joint_waypoint_speeds(self, joint_points):
-        """
-        Compute per-waypoint joint velocities with lookahead.
-
-        Returns:
-          waypoint_speeds: list of 3-element speed vectors, one per waypoint
-          waypoint_limits:  list of 3-element max speed vectors per waypoint
-        """
-        n = len(joint_points) - 1
-        waypoint_speeds = [np.zeros(3, dtype=float) for _ in range(n + 1)]
-        waypoint_limits = [np.full(3, np.inf, dtype=float) for _ in range(n + 1)]
-
-        if n <= 0:
-            return waypoint_speeds, waypoint_limits
-
-        waypoint_limits[0][:] = 0.0
-        waypoint_limits[-1][:] = 0.0
-
-        # Corner handling: if a joint changes direction, that joint must stop at the waypoint.
-        for i in range(1, n):
-            prev_delta = joint_points[i] - joint_points[i - 1]
-            next_delta = joint_points[i + 1] - joint_points[i]
-            for axis in range(3):
-                a = self._signf(prev_delta[axis])
-                b = self._signf(next_delta[axis])
-                if a != 0 and b != 0 and a != b:
-                    waypoint_limits[i][axis] = 0.0
-
-        # Forward pass: accelerate as much as possible.
-        for i in range(n):
-            delta = joint_points[i + 1] - joint_points[i]
-            dist = np.abs(delta)
-
-            for axis in range(3):
-                amax = max(self._jointMaxAccelerations[axis], 1e-9)
-                s0 = waypoint_speeds[i][axis]
-                vmax = waypoint_limits[i + 1][axis]
-
-                # Speed reachable over this axis segment.
-                if dist[axis] <= 0.0:
-                    reachable = s0
-                else:
-                    reachable = math.sqrt(max(s0 * s0 + 2.0 * amax * dist[axis], 0.0))
-
-                waypoint_speeds[i + 1][axis] = min(vmax, reachable)
-
-        # Backward pass: ensure deceleration to the next waypoint is possible.
-        for i in range(n - 1, -1, -1):
-            delta = joint_points[i + 1] - joint_points[i]
-            dist = np.abs(delta)
-
-            for axis in range(3):
-                amax = max(self._jointMaxAccelerations[axis], 1e-9)
-                s1 = waypoint_speeds[i + 1][axis]
-
-                if dist[axis] <= 0.0:
-                    reachable = s1
-                else:
-                    reachable = math.sqrt(max(s1 * s1 + 2.0 * amax * dist[axis], 0.0))
-
-                waypoint_speeds[i][axis] = min(waypoint_speeds[i][axis], reachable, waypoint_limits[i][axis])
-
-        # Final forward pass for consistency.
-        for i in range(n):
-            delta = joint_points[i + 1] - joint_points[i]
-            dist = np.abs(delta)
-
-            for axis in range(3):
-                amax = max(self._jointMaxAccelerations[axis], 1e-9)
-                s0 = waypoint_speeds[i][axis]
-                vmax = waypoint_limits[i + 1][axis]
-
-                if dist[axis] <= 0.0:
-                    reachable = s0
-                else:
-                    reachable = math.sqrt(max(s0 * s0 + 2.0 * amax * dist[axis], 0.0))
-
-                waypoint_speeds[i + 1][axis] = min(waypoint_speeds[i + 1][axis], vmax, reachable)
-
-        waypoint_speeds[-1][:] = 0.0
-        return waypoint_speeds, waypoint_limits
-
-    def MoveWithSpeed(self, targetPos, maxSpeed, accel=None, toolRotation=None):
+    def MoveWithSpeed(self, targets, maxVel, accel=None, toolRotation=None):
         """
         Fully joint-wise motion planning.
 
-        maxSpeed is the path speed between Cartesian waypoints.
+        maxVel is the path speed between Cartesian waypoints.
         accel is a percentage [0..1] of per-joint max acceleration.
         """
 
         if self._plotter:
             self._plotter.reset_move_plots()
 
-        maxVel = float(maxSpeed)
+        maxVel = 0.3
+        v_max = np.full(3, maxVel, dtype=float)
         accel_pct = 1.0 if accel is None else float(accel)
         if accel_pct > 1.0:
             accel_pct = accel_pct / 100.0
-        accel_pct = 2.
-        accel_vec = self._jointMaxAccelerations * accel_pct
-        accel_vec = np.where(accel_vec < 1e-9, 1e-9, accel_vec)
+        accel_pct = 0.5
+        a_max = self._jointMaxAccelerations * accel_pct
+        a_max = np.where(a_max < 1e-9, 1e-9, a_max)
 
         if toolRotation is None:
             toolRotation = self._toolRotation
         toolRotation = float(np.clip(toolRotation, 0, 1024))
 
         self._debug("--=========--")
-        self._debug(f"{maxVel=}")
-        self._debug(f"{accel_pct=}")
+        print_arr("v_max", v_max)
+        print_arr("a_max", a_max)
 
-        targets = self._normalize_move_targets(targetPos)
+        if isinstance(targets, np.ndarray) and targets.ndim == 1:
+            targets = [targets.astype(float)]  # single coordinate
+        targets = [np.array(t, dtype=float) for t in targets]
         if len(targets) == 0:
             return
 
@@ -508,90 +622,116 @@ class Dobot:
         print_arr("unwrap.bef", *joint_points)
         joint_points = self._unwrap_angles(joint_points)
 
-        waypoint_speeds, _ = self._plan_joint_waypoint_speeds(joint_points)
-
         print_arr("points", *points)
         print_arr("joint_points", *joint_points)
-        print_arr("waypoint_speeds", *waypoint_speeds)
 
-        for seg_index in range(len(joint_points) - 1):
-            joint_start = joint_points[seg_index]
-            joint_end = joint_points[seg_index + 1]
-            delta = joint_end - joint_start
-            # calc the required time per joint with given max acceleration
-            v_start = np.abs(waypoint_speeds[seg_index])
-            v_end = np.abs(waypoint_speeds[seg_index + 1])
-            # max possible speed for each joint
-            v_peak = np.sqrt(accel_vec * np.abs(delta) + 0.5 * (v_start * v_start + v_end * v_end))
+        debug = True
+        countPts = len(joint_points)
+        # create all segments first
+        segments = [SegmentParams(joint_points[i], joint_points[i+1], v_max, v_max, v_max, a_max)
+                    for i in range(len(joint_points)-1)]
 
-            phase_distances = np.zeros((3, 3), dtype=float)
-            phase_duration = np.zeros((3, 3), dtype=float)
+        def apply_static_conditions(segments, idx):
+            """
+            Apply static conditions to a segment, such as zero velocity at the start and end points.
+            To be used before the motion planning updates of each scan forward or backward.
+            This makes sure the conditions are met before the next calculation.
+            """
+            if idx == 0:  # all start with zero
+                segments[idx].v_start = np.zeros(3, dtype=float)
+            if idx == len(segments) - 1:  # all end with zero
+                segments[idx].v_end = np.zeros(3, dtype=float)
 
-            accel, flat, decel = 0, 1, 2
-            # calc max required time for each joint in each phase of this segment
-            phase_distances[accel] = np.maximum((v_peak * v_peak - v_start * v_start) / (2.0 * accel_vec), 0.0)
-            phase_distances[flat] = np.maximum(np.abs(delta) - phase_distances[accel] - phase_distances[decel], 0.0)
-            phase_distances[decel] = np.maximum((v_peak * v_peak - v_end * v_end) / (2.0 * accel_vec), 0.0)
-            phase_duration[accel] = np.where(v_peak > v_start, (v_peak - v_start) / accel_vec, 0.0)
-            phase_duration[flat] = np.where(v_peak > 0.0, phase_distances[flat] / v_peak, 0.0)
-            phase_duration[decel] = np.where(v_peak > v_end, (v_peak - v_end) / accel_vec, 0.0)
-            # Each joint drives its own phase duration, use the maximum.
+        def apply_directional_conditions(segments, idx, isforward=True):
+            """
+            Apply directional conditions to a segment depending on the scan direction,
+            such as that start and end velocities have to match.
+            To be used before the motion planning updates of each scan forward or backward.
+            This makes sure the conditions are met before the next calculation.
+            """
+            incr = int(isforward)*2-1
+            if 0 <= (idx - incr) < len(segments):
+                # continue the next segment with the speed of the previous one
+                segments[idx].set_v_from(isforward, segments[idx-incr].v_to(isforward))
+            # for no position change within the segment, the velocity stays the same
+            segments[idx].set_v_to(isforward, np.where(np.abs(segments[idx].delta) < 1e-5,
+                                segments[idx].v_from(isforward), segments[idx].v_to(isforward)))
+            if 0 <= (idx + incr) < len(segments):
+                # on direction change, set those joints to zero
+                # sign change with zero is ok
+                sign_change = np.logical_and((np.sign(segments[idx].delta)  * np.sign(segments[idx+incr].delta)) != 0,
+                                              np.sign(segments[idx].delta) != np.sign(segments[idx+incr].delta))
+                # print_arr("sign_change", sign_change)
+                segments[idx].set_v_to(isforward, np.where(sign_change, 0., segments[idx].v_to(isforward)))
+
+        # forward scan for allowed segment velocities
+        for seg_index in range(len(segments)):
+            apply_static_conditions(segments, seg_index)
+            apply_directional_conditions(segments, seg_index, isforward=True)
+            if debug:
+                print(f"# seg {seg_index}:\n{segments[seg_index]}")
+            segments[seg_index].update(v_max, debug=debug)
+
+        # backward scan for allowed segment velocities
+        for seg_index in reversed(range(len(segments))):
+            apply_static_conditions(segments, seg_index)
+            apply_directional_conditions(segments, seg_index, isforward=False)
+            if debug:
+                print(f"# seg {seg_index}:\n{segments[seg_index]}")
+            segments[seg_index].update(v_max, isforward=False, debug=debug)
+
+        # forward scan for allowed segment velocities
+        for seg_index in range(len(segments)):
+            apply_static_conditions(segments, seg_index)
+            apply_directional_conditions(segments, seg_index, isforward=True)
+            if debug:
+                print(f"# seg {seg_index}:\n{segments[seg_index]}")
+            segments[seg_index].update(v_max, fix_mismatch=True, debug=debug)
+
+        for seg_index in range(len(segments)):
+            segment = segments[seg_index]
+            print(f"# seg {seg_index}:\n{segment}")
+
             # determine the required number of slices in each part across all joints
-            # durations for each phase in seconds
-            phase_duration = phase_duration.max(axis=1)
-            slices = np.round(phase_duration * 50.0).astype(int)
-            totalSlices = slices.sum()
-
-            # recalculate v_peak for each joint to synchronize them across the given phase durations
-            segment_duration = 0.5 * phase_duration[accel] + phase_duration[flat] + 0.5 * phase_duration[decel]
-            joint_distances = np.abs(delta) - 0.5 * (v_start * phase_duration[accel] + v_end * phase_duration[decel])
-            v_peak_synced = np.where(segment_duration > 0.0, joint_distances / segment_duration, 0.0)
-
-            # recalculate accelerations for each phase for each joint
-            joint_accel = np.where(phase_duration[accel] > 0.0, (v_peak_synced - v_start) / phase_duration[accel], 0.0)
-            joint_decel = np.where(phase_duration[accel] > 0.0, (v_peak_synced - v_end) / phase_duration[decel], 0.0)
-
-            # pre-calculate distances for each phase synchronized
-            phase_distances[accel] = v_start * phase_duration[accel] + 0.5 * joint_accel * phase_duration[accel] * phase_duration[accel]
-            phase_distances[flat] = v_peak_synced * phase_duration[flat]
-            phase_distances[decel] = np.zeros(3)
-
-            print("-- segment", seg_index)
-            print_arr("start", joint_start)
-            print_arr("end", joint_end)
-            print_arr("delta", delta)
-            print_arr("v_start", v_start)
-            print_arr("v_end", v_end)
-            print_arr("v_peak", v_peak_synced)
-            print_arr("phase_duration", phase_duration)
-            print_arr("totalSlices", [totalSlices], slices)
+            slices = np.ceil(segment.phase_duration * 50.0).astype(int)
+            totalSlices = int(slices.sum())
+            print_arr("slices, total", segment.phase_duration * 50., (totalSlices,))
 
             commands = 1
+            prev_joint_pos = next_joint_pos = None
             while commands <= totalSlices:
-                #print(f"{commands=}", f"{slices[accel]=}")
-                if commands <= slices[accel] and slices[accel] > 0:
+                #print(f"{commands=}", f"{slices[ACCEL]=}")
+                if commands <= slices[ACCEL] and slices[ACCEL] > 0:
                     t = commands / 50.0
-                    s = v_start * t + 0.5 * joint_accel * t * t
+                    s = segment.v_start * t + 0.5 * segment.joint_accel * t * t
                     print_arr("accelerating", [t], s)
-                elif commands <= slices[accel] + slices[flat]:
-                    flat_cmd = commands - slices[accel]
+                elif commands <= slices[ACCEL] + slices[FLAT]:
+                    flat_cmd = commands - slices[ACCEL]
                     t = flat_cmd / 50.0
-                    s = phase_distances[accel] + v_peak_synced * t
+                    s = segment.phase_distances[ACCEL] + segment.joint_v_peak * t
                     print_arr("constant", [t], s)
                 else:
-                    dec_cmd = commands - slices[accel] - slices[flat]
+                    dec_cmd = commands - slices[ACCEL] - slices[FLAT]
                     t = dec_cmd / 50.0
-                    s = phase_distances[accel] + phase_distances[flat] + (v_peak_synced * t - 0.5 * joint_decel * t * t)
+                    s = segment.phase_distances[ACCEL] + segment.phase_distances[FLAT] + (
+                            segment.joint_v_peak * t - 0.5 * segment.joint_decel * t * t
+                    )
                     print_arr("decelerating", [t], s)
 
-                nextJoint = joint_start + np.sign(delta) * s
-                print_arr("nextJoint", nextJoint)
+                prev_joint_pos = next_joint_pos
+                print_arr("prev joint", prev_joint_pos)
+                next_joint_pos = segment.start + np.sign(segment.delta) * s
+                delta = None
+                if prev_joint_pos is not None:
+                    # FIXME: calc num steps from delta to be more precise?
+                    delta = np.abs(next_joint_pos-prev_joint_pos).sum()
+                print_arr("next joint, delta", next_joint_pos, delta)
 
                 nextToolRotation = self._toolRotation + (
                         (toolRotation - self._toolRotation) * (commands / float(totalSlices))
                 )
 
-                movedSteps, leftSteps = self._moveToAnglesSlice(nextJoint, nextToolRotation, debug=False)
+                movedSteps, leftSteps = self._moveToAnglesSlice(next_joint_pos, nextToolRotation, debug=False)
                 self._debug("moved", *movedSteps, "steps")
                 self._debug("leftovers", *leftSteps)
 
@@ -602,7 +742,7 @@ class Dobot:
                 self._frontSteps += movedSteps[2]
 
                 if self._plotter:
-                    nextPos = np.array(self._kinematics.coordinatesFromAngles(*nextJoint), dtype=float)
+                    nextPos = np.array(self._kinematics.coordinatesFromAngles(*next_joint_pos), dtype=float)
                     self._plotter.add_move_data(self.pos, nextPos)
 
             #currPos = points[seg_index + 1]
