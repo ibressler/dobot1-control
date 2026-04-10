@@ -44,7 +44,7 @@ halfPi = math.pi / 2.0
 
 
 class DobotDriver:
-    def __init__(self, comport, rate=115200):
+    def __init__(self, comport, rate=115200, sca1000Sensors=False):
         """
         Initializes a serial communication object.
 
@@ -56,7 +56,14 @@ class DobotDriver:
         :type comport: str
         :param rate: The baud rate for the communication. Defaults to 115200.
         :type rate: int
+        :param sca1000Sensors: Whether the Dobot has SCA1000-D01 sensors installed. Defaults to False.
+        :type sca1000Sensors: bool
         """
+        self._accelConversion = 493.56
+        if sca1000Sensors:
+            # on a Dobot with SCA1000-D01 sensors, the maximum accelerometer value of the rear arm
+            # when vertical (90°) is 1538, value at 0° is 1024, so the offset is fine here
+            self._accelConversion = 514.
         self._lock = threading.Lock()
         self._comport = comport
         self._rate = rate
@@ -741,8 +748,7 @@ class DobotDriver:
             return self._stopSeq, 0, steps
         return self.reverseBits32(val), actualSteps, steps - actualSteps
 
-    @staticmethod
-    def accelToRadians(val, offset):
+    def accelToRadians(self, val, offset):
         """
         Converts accelerometer raw value to radians.
 
@@ -754,7 +760,7 @@ class DobotDriver:
         :rtype: float
         """
         try:
-            return math.asin(float(val - offset) / 493.56)
+            return math.asin(float(val - offset) / self._accelConversion)
         except ValueError:
             return halfPi
 

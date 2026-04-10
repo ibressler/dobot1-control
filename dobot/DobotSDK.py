@@ -351,7 +351,7 @@ class Dobot:
     _accelOffsetFront = 1024
 
     def __init__(self, port, rate=115200, timeout=0.025, debug=False, plot=False, fake=False,
-                 jointMaxAccelerations=None):
+                 jointMaxAccelerations=None, sca1000Sensors=False):
         """
         Initializes the Dobot control class with parameters for serial communication, debugging,
         plotting options, and maximum joint accelerations. Also initializes internal configurations
@@ -372,10 +372,14 @@ class Dobot:
         :param jointMaxAccelerations: Per-joint acceleration limits in joint units per second squared.
             If none are provided, defaults to (1.0, 1.0, 1.0), which are in degrees per second squared.
         :type jointMaxAccelerations: tuple[float, float, float], optional
+        :param sca1000Sensors: Enable if SCA1000 sensors installed as accelerometers.
+            This changes conversion of sensor values to degrees and thus affects positioning.
+            Defaults to False.
+        :type sca1000Sensors: bool, optional
         """
         self._debugOn = debug
         self._fake = fake
-        self._driver = DobotDriver(port, rate)
+        self._driver = DobotDriver(port, rate, sca1000Sensors=sca1000Sensors)
         if fake:
             self._driver._ramps = True
             self._driver._stepCoeff = 20000
