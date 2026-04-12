@@ -101,30 +101,34 @@ class DobotPlotter:
 
         plt.subplot(3, 3, 1)
         plt.title("Current Coords")
-        data = np.stack(self._coords)
-        for i, axis in enumerate(['x', 'y', 'z']):
-            plt.plot(data[:,i], **get_kwargs(axis))
+        if len(self._coords):
+            data = np.stack(self._coords)
+            for i, axis in enumerate(['x', 'y', 'z']):
+                plt.plot(data[:,i], **get_kwargs(axis))
         plt.legend()
 
         plt.subplot(3, 3, 2)
         plt.title("Next Coords")
-        data = np.stack(self._next)
-        for i, axis in enumerate(['x', 'y', 'z']):
-            plt.plot(data[:,i], **get_kwargs(axis))
+        if len(self._next):
+            data = np.stack(self._next)
+            for i, axis in enumerate(['x', 'y', 'z']):
+                plt.plot(data[:,i], **get_kwargs(axis))
         plt.legend()
 
         plt.subplot(3, 3, 3)
         plt.title("Diff Coords")
-        data = np.stack(self._diff)
-        for i, axis in enumerate(['x', 'y', 'z']):
-            plt.plot(data[:,i], **get_kwargs(axis))
+        if len(self._diff):
+            data = np.stack(self._diff)
+            for i, axis in enumerate(['x', 'y', 'z']):
+                plt.plot(data[:,i], **get_kwargs(axis))
         plt.legend()
 
         plt.subplot(3, 1, 2)
         plt.title("Slice Data (Actual Steps)")
-        data = np.stack(self._slice_actual)
-        for i, axis in enumerate(['base', 'rear', 'front']):
-            plt.plot(data[:,i], **get_kwargs(axis))
+        if len(self._slice_actual):
+            data = np.stack(self._slice_actual)
+            for i, axis in enumerate(['base', 'rear', 'front']):
+                plt.plot(data[:,i], **get_kwargs(axis))
         plt.legend()
 
         # make the y ticks integers, not floats
@@ -651,7 +655,6 @@ class Dobot:
         print_arr("joint_points", *joint_points)
 
         debug = True
-        countPts = len(joint_points)
         # create all segments first
         segments = [SegmentParams(joint_points[i], joint_points[i+1], v_max, v_max, v_max, a_max)
                     for i in range(len(joint_points)-1)]
@@ -723,7 +726,8 @@ class Dobot:
             print_arr("slices, total", segment.phase_duration * 50., (totalSlices,))
 
             commands = 1
-            prev_joint_pos = next_joint_pos = None
+            prev_joint_pos = segment.start
+            next_joint_pos = None
             while commands <= totalSlices:
                 #print(f"{commands=}", f"{slices[ACCEL]=}")
                 if commands <= slices[ACCEL] and slices[ACCEL] > 0:
@@ -743,7 +747,6 @@ class Dobot:
                     )
                     print_arr("decelerating", [t], s)
 
-                prev_joint_pos = next_joint_pos
                 print_arr("prev joint", prev_joint_pos)
                 next_joint_pos = segment.start + np.sign(segment.delta) * s
                 delta = None
@@ -751,12 +754,13 @@ class Dobot:
                     # FIXME: calc num steps from delta to be more precise?
                     delta = np.abs(next_joint_pos-prev_joint_pos).sum()
                 print_arr("next joint, delta", next_joint_pos, delta)
+                prev_joint_pos = next_joint_pos
 
                 nextToolRotation = self._toolRotation + (
                         (toolRotation - self._toolRotation) * (commands / float(totalSlices))
                 )
 
-                cmdVals, dirs, movedSteps, leftSteps = self._prepareAnglesSlice(next_joint_pos, debug=True)
+                cmdVals, dirs, movedSteps, leftSteps = self._prepareAnglesSlice(next_joint_pos, debug=debug)
                 skip_this_slice = np.all(movedSteps == 0)
                 self._debug("steps to move:", *movedSteps,
                             "skipped!" if skip_this_slice else "")
