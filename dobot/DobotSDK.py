@@ -359,7 +359,7 @@ class Dobot:
     _accelOffsetFront = 1024
 
     def __init__(self, port, rate=115200, timeout=0.025, debug=False, plot=False, fake=False,
-                 jointMaxAccelerations=None, sca1000Sensors=False, endEffectorOffset=None):
+                 jointMaxVelDeg=None, jointMaxAccelDeg=None, sca1000Sensors=False, endEffectorOffset=None):
         """
         Initializes the Dobot control class with parameters for serial communication, debugging,
         plotting options, and maximum joint accelerations. Also initializes internal configurations
@@ -377,10 +377,13 @@ class Dobot:
         :type plot: bool, optional
         :param fake: Enables fake mode for testing without real hardware. Defaults to False.
         :type fake: bool, optional
-        :param jointMaxAccelerations: Per-joint acceleration limits in joint units per second squared.
-            If none are provided, defaults to (1.0, 1.0, 1.0), which are in degrees per second squared.
-        :type jointMaxAccelerations: tuple[float, float, float], optional
-        :param sca1000Sensors: Enable if SCA1000 sensors installed as accelerometers.
+        :param jointMaxVelDeg: Per-joint velocity maximum limit in degrees per second.
+            Defaults to (45.0, 45.0, 45.0).
+        :type jointMaxVelDeg: tuple[float, float, float], optional
+        :param jointMaxAccelDeg: Per-joint acceleration maximum limit in degrees per second squared.
+            Defaults to (90.0, 90.0, 90.0).
+        :type jointMaxAccelDeg: tuple[float, float, float], optional
+        :param sca1000Sensors: Enable when SCA1000 sensors are installed as accelerometers.
             This changes conversion of sensor values to degrees and thus affects positioning.
             Defaults to False.
         :type sca1000Sensors: bool, optional
@@ -403,12 +406,18 @@ class Dobot:
         self._kinematics = DobotKinematics(endEffectorOffset=endEffectorOffset, debug=debug)
         self._toolRotation = 0
         self._gripper = 480
+        # Per-joint velocity limits in joint units per second.
+        # The MoveWithSpeed() velocity argument is interpreted as a percentage of these maxima.
+        if jointMaxVelDeg is None:
+            jointMaxVelDeg = (45.0, 45.0, 45.0)  # fallback deg/sec
+        self._jointMaxVelDeg = np.array(jointMaxVelDeg, dtype=float)
+        print_arr(f"Maximum joint velocity in degrees/sec:      {self._jointMaxVelDeg}")
         # Per-joint acceleration limits in joint units per second^2.
-        # These are used as the baseline, and the MoveWithSpeed() accel argument
-        # is interpreted as a percentage of these maxima.
-        if jointMaxAccelerations is None:
-            jointMaxAccelerations = (1.0, 1.0, 1.0)  # deg/sec-squared
-        self._jointMaxAccelerations = np.array(jointMaxAccelerations, dtype=float)
+        # The MoveWithSpeed() accel argument is interpreted as a percentage of these maxima.
+        if jointMaxAccelDeg is None:
+            jointMaxAccelDeg = (90.0, 90.0, 90.0)  # fallback deg/sec-squared
+        self._jointMaxAccelDeg = np.array(jointMaxAccelDeg, dtype=float)
+        print_arr(f"Maximum joint acceleration in degrees/sec²: {self._jointMaxAccelDeg}")
         # Last directions to compensate for backlash.
         self._lastBaseDirection = 0
         self._lastRearDirection = 0
@@ -610,25 +619,30 @@ class Dobot:
             out.append(cur)
         return out
 
-    def MoveWithSpeed(self, targets, maxVel, accel=None, toolRotation=None):
+    def MoveWithSpeed(self, targets, vel=0.5, accel=0.5, toolRotation=None):
         """
-        Fully joint-wise motion planning.
+        Moves the robotic system through a series of target positions while maintaining a specified
+        maximum velocity and acceleration. Optionally, the movement can also involve interpolating
+        a tool rotation.
 
-        maxVel is the path speed between Cartesian waypoints.
-        accel is a percentage [0..1] of per-joint max acceleration.
+        :param targets: A list or NumPy array of Cartesian target coordinates (xyz) to move through.
+            If a single NumPy array is provided, it is treated as a single target position.
+        :param vel: (Optional) Maximum joint velocity percentage of the maximum allowed joint velocity for the movement.
+        :param accel: (Optional) Acceleration percentage of the maximum allowed joint acceleration
+            to be applied. If not provided, a default value of 50% is assumed.
+        :param toolRotation: (Optional) The desired tool rotation value. If not provided,
+            defaults to the current tool rotation. The value is clamped within the range [0, 1024].
+        :return: None
         """
 
         if self._plotter:
             self._plotter.reset_move_plots()
 
-        maxVel = 0.3
-        v_max = np.full(3, maxVel, dtype=float)
-        accel_pct = 1.0 if accel is None else float(accel)
-        if accel_pct > 1.0:
-            accel_pct = accel_pct / 100.0
-        accel_pct = 0.5
-        a_max = self._jointMaxAccelerations * accel_pct
-        a_max = np.where(a_max < 1e-9, 1e-9, a_max)
+        # translate given percentages for speed & accel to vectors in rad with indiv. values for each joint
+        vel = np.clip(vel, 1e-9, 1.)
+        v_max = np.deg2rad(self._jointMaxVelDeg) * vel
+        accel = np.clip(accel, 1e-9, 1.)
+        a_max = np.deg2rad(self._jointMaxAccelDeg) * accel
 
         if toolRotation is None:
             toolRotation = self._toolRotation
