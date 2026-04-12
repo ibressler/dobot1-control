@@ -19,6 +19,7 @@ import time
 from serial import SerialException
 import math
 import sys
+from dobot.DobotBase import DobotBase
 
 # Workaround to support Python 2/3
 if sys.version_info > (3,):
@@ -43,7 +44,7 @@ CMD_BOARD_VERSION = 12
 halfPi = math.pi / 2.0
 
 
-class DobotDriver:
+class DobotDriver(DobotBase):
     def __init__(self, comport, rate=115200, sca1000Sensors=False):
         """
         Initializes a serial communication object.
@@ -96,7 +97,7 @@ class DobotDriver:
             # Have to wait for Arduino initialization to finish, or else it doesn't boot.
             time.sleep(2)
         except SerialException as e:
-            print(e)
+            self._debug(e, level=0)
             sys.exit(1)
 
         ret = (0, 0)
@@ -105,14 +106,14 @@ class DobotDriver:
             ret = self.BoardVersion()
             i -= 1
         if i == 0:
-            print("Cannot get board version. Giving up")
+            self._debug("Cannot get board version! Giving up.", level=0)
             sys.exit(1)
 
         self._ramps = bool(ret[1])
         if self._ramps:
-            print("Board: RAMPS")
+            self._debug("Board: RAMPS", level=0)
         else:
-            print("Board: FPGA")
+            self._debug("Board: FPGA", level=0)
 
         if self._ramps:
             self._stepCoeff = 20000

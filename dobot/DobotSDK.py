@@ -31,6 +31,7 @@ import numpy as np
 
 from dobot.DobotDriver import DobotDriver
 from dobot.DobotKinematics import DobotKinematics
+from dobot.DobotBase import DobotBase
 
 piTwo = 2. * np.pi
 
@@ -353,7 +354,7 @@ class SegmentParams:
             if kwargs.get("debug", False):
                 print_arr("v_start", self.v_start)
 
-class Dobot:
+class Dobot(DobotBase):
     # See calibrate-accelerometers.py for details
     _accelOffsetRear = 1024  # FIXME: move to driver? or into configurable DobotConfig obj
     _accelOffsetFront = 1024
@@ -403,7 +404,7 @@ class Dobot:
         else:
             self._driver.Open(timeout)
         self._plotter = DobotPlotter() if plot else None
-        self._kinematics = DobotKinematics(endEffectorOffset=endEffectorOffset, debug=debug)
+        self._kinematics = DobotKinematics(endEffectorOffset=endEffectorOffset)
         self._toolRotation = 0
         self._gripper = 480
         # Per-joint velocity limits in joint units per second.
@@ -429,10 +430,6 @@ class Dobot:
             self._frontSteps = long(0)
         else:
             self._init_accelerometers()
-
-    def _debug(self, *args):
-        if self._debugOn:
-            print(*args)
 
     def _get_accelerometers_raw(self):
         attempts = 10
@@ -665,7 +662,7 @@ class Dobot:
             joint_points.append(np.array(self._kinematics.anglesFromCoordinates(p, debug=debug), dtype=float))
 
         if debug:
-            print("--=========--")
+            self._debug("MoveWithSpeed:", level=0)
             print_arr("v_max", v_max)
             print_arr("a_max", a_max)
             print_arr("world points", *points)
@@ -786,9 +783,10 @@ class Dobot:
 
                 cmdVals, dirs, movedSteps, leftSteps = self._prepareAnglesSlice(next_joint_pos, debug=debug)
                 skip_this_slice = np.all(movedSteps == 0)
-                self._debug("steps to move:", *movedSteps,
-                            "skipped!" if skip_this_slice else "")
-                self._debug("leftovers", *leftSteps)
+                if debug:
+                    self._debug("steps to move:", *movedSteps,
+                                "skipped!" if skip_this_slice else "")
+                    self._debug("leftovers", *leftSteps)
                 commands += 1
                 if skip_this_slice:
                     continue

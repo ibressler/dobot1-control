@@ -14,6 +14,7 @@ License: MIT
 """
 
 import math
+from dobot.DobotBase import DobotBase
 
 # Dimensions in mm
 lengthRearArm = 135.0
@@ -25,8 +26,8 @@ lengthRearSquared = pow(lengthRearArm, 2)
 lengthFrontSquared = pow(lengthFrontArm, 2)
 
 
-class DobotKinematics:
-    def __init__(self, endEffectorOffset=(50.9, 15.), debug=False):
+class DobotKinematics(DobotBase):
+    def __init__(self, endEffectorOffset=(50.9, 15.)):
         """
         Manages the Dobot geometry configuration with an end effector offset and an optional debug mode.
 
@@ -36,12 +37,7 @@ class DobotKinematics:
         :param debug: Indicates whether the debug mode is enabled. Pass True to enable
             debugging or False to disable it.
         """
-        self._debugOn = debug
         self._endEffectorOffset = endEffectorOffset
-
-    def _debug(self, *args):
-        if self._debugOn:
-            print(*args)
 
     def coordinatesFromAngles(self, baseAngle, rearArmAngle, frontArmAngle):
         radius = lengthRearArm * math.cos(rearArmAngle) + lengthFrontArm * math.cos(frontArmAngle) + self._endEffectorOffset[0]
@@ -54,6 +50,8 @@ class DobotKinematics:
         """
         https://www.learnaboutrobots.com/inverseKinematics.htm
         """
+        if debug:
+            self._debug("anglesFromCoordinates", xyz, level=0)
         # Radius to the center of the tool.
         radiusTool = math.sqrt(xyz[0]**2 + xyz[1]**2)
         if debug:
