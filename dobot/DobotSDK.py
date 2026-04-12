@@ -361,7 +361,8 @@ class Dobot(DobotBase):
     _accelOffsetFront = 1024
 
     def __init__(self, port, rate=115200, timeout=0.025, debug=False, plot=False, fake=False,
-                 jointMaxVelDeg=None, jointMaxAccelDeg=None, sca1000Sensors=False, endEffectorOffset=None):
+                 jointMaxVelDeg=None, jointMaxAccelDeg=None, sca1000Sensors=False, endEffectorOffset=None,
+                 baseLimitDeg=None, rearLimitDeg=None, frontLimitDeg=None):
         """
         Initializes the Dobot control class with parameters for serial communication, debugging,
         plotting options, and maximum joint accelerations. Also initializes internal configurations
@@ -392,6 +393,15 @@ class Dobot(DobotBase):
         :param endEffectorOffset: Offset or distance (horizontal, vertical) of end effector tool from joint 3 in mm.
             Defaults to (50.9, 15.).
         :type endEffectorOffset: tuple[float, float], optional
+        :param baseLimitDeg: Angular limits (min, max) for the base joint in degrees.
+            Defaults to (-90.0, 90.0).
+        :type baseLimitDeg: tuple[float, float], optional
+        :param rearLimitDeg: Angular limits (min, max) for the rear joint in degrees.
+            Defaults to (0.0, 105.0).
+        :type rearLimitDeg: tuple[float, float], optional
+        :param frontLimitDeg: Angular limits (min, max) for the front joint in degrees.
+            Defaults to (-102.0, 18.0).
+        :type frontLimitDeg: tuple[float, float], optional
         """
         self._debugOn = debug
         self._fake = fake
@@ -413,13 +423,24 @@ class Dobot(DobotBase):
         if jointMaxVelDeg is None:
             jointMaxVelDeg = (45.0, 45.0, 45.0)  # fallback deg/sec
         self._jointMaxVelDeg = np.clip(np.array(jointMaxVelDeg, dtype=float), 1e-2, 360.)
-        print_arr(f"Maximum joint velocity in degrees/sec:      {self._jointMaxVelDeg}")
+        print_arr(f"Maximum joint velocity in degrees/sec:", self._jointMaxVelDeg)
         # Per-joint acceleration limits in joint units per second^2.
         # The MoveWithSpeed() accel argument is interpreted as a percentage of these maxima.
         if jointMaxAccelDeg is None:
             jointMaxAccelDeg = (90.0, 90.0, 90.0)  # fallback deg/sec-squared
         self._jointMaxAccelDeg = np.clip(np.array(jointMaxAccelDeg, dtype=float), 1e-2, 360.)
-        print_arr(f"Maximum joint acceleration in degrees/sec²: {self._jointMaxAccelDeg}")
+        print_arr(f"Maximum joint accel. in degrees/sec²: ", self._jointMaxAccelDeg)
+        # Per-joint angular limits in degrees, defaults for Dobot with SCA1000 accelerometers
+        if baseLimitDeg is None:
+            baseLimitDeg = (-90.0, 90.0)
+        if rearLimitDeg is None:
+            rearLimitDeg = (0.0, 105.0)
+        if frontLimitDeg is None:
+            frontLimitDeg = (-10., 100.)
+        self._limitsRad = np.deg2rad(np.array((baseLimitDeg, rearLimitDeg, frontLimitDeg)))
+        print_arr(f"Base  joint angular limits in degrees:", np.rad2deg(self._limitsRad[BASE]))
+        print_arr(f"Rear  joint angular limits in degrees:", np.rad2deg(self._limitsRad[REAR]))
+        print_arr(f"Front joint angular limits in degrees:", np.rad2deg(self._limitsRad[FRONT]))
         # Last directions to compensate for backlash.
         self._lastBaseDirection = 0
         self._lastRearDirection = 0
@@ -523,12 +544,14 @@ class Dobot(DobotBase):
             rearArmActualStepsPerRevolution,
             frontArmActualStepsPerRevolution
         ])
+        angles = np.clip(angles, self._limitsRad[:,0], self._limitsRad[:,1])
         stepLocations = angles * multipliers / piTwo
         diffs = stepLocations - currSteps
         # rear and front are absolute in the original code
         stepLocations[1:] = np.abs(stepLocations[1:])
 
         if debug:
+            # print_arr("angles:", angles)
             print_arr("currSteps:", currSteps)
             print_arr("stepLocs:", stepLocations)
             print_arr("diffs:", diffs)
@@ -660,7 +683,10 @@ class Dobot(DobotBase):
         # Convert Cartesian waypoints to joint angles first.
         joint_points = []
         for p in points:
-            joint_points.append(np.array(self._kinematics.anglesFromCoordinates(p, debug=debug), dtype=float))
+            angles = self._kinematics.anglesFromCoordinates(p, debug=debug)
+            # clip way points to stay within allowed ranges
+            angles = np.clip(angles, self._limitsRad[:,0], self._limitsRad[:,1])
+            joint_points.append(angles)
 
         if debug:
             self._debug("MoveWithSpeed:", level=0)
