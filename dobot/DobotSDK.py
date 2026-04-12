@@ -96,6 +96,9 @@ class DobotPlotter:
         def get_kwargs(axis):
             return dict(color=colors[axis], linewidth=linewidth, label=axis)
 
+        if not len(self._slice_actual):
+            return  # nothing to do
+
         plt = self._plt
         plt.figure(figsize=(12, 8))
 
@@ -629,16 +632,13 @@ class Dobot:
             toolRotation = self._toolRotation
         toolRotation = float(np.clip(toolRotation, 0, 1024))
 
-        self._debug("--=========--")
-        print_arr("v_max", v_max)
-        print_arr("a_max", a_max)
-
         if isinstance(targets, np.ndarray) and targets.ndim == 1:
             targets = [targets.astype(float)]  # single coordinate
         targets = [np.array(t, dtype=float) for t in targets]
         if len(targets) == 0:
             return
 
+        debug = self._debugOn
         # Build a full path including the current position as the starting point.
         currPos = self.pos
         points = [currPos] + targets
@@ -646,14 +646,17 @@ class Dobot:
         # Convert Cartesian waypoints to joint angles first.
         joint_points = []
         for p in points:
-            joint_points.append(np.array(self._kinematics.anglesFromCoordinates(p, debug=False), dtype=float))
-        print_arr("unwrap.bef", *joint_points)
-        joint_points = self._unwrap_angles(joint_points)
+            joint_points.append(np.array(self._kinematics.anglesFromCoordinates(p, debug=debug), dtype=float))
 
-        print_arr("points", *points)
-        print_arr("joint_points", *joint_points)
+        if debug:
+            print("--=========--")
+            print_arr("v_max", v_max)
+            print_arr("a_max", a_max)
+            print_arr("world points", *points)
+            #print_arr("unwrap.bef", *joint_points)
+            joint_points = self._unwrap_angles(joint_points)
+            print_arr("joint points", *joint_points)
 
-        debug = True
         # create all segments first
         segments = [SegmentParams(joint_points[i], joint_points[i+1], v_max, v_max, v_max, a_max)
                     for i in range(len(joint_points)-1)]
@@ -717,12 +720,14 @@ class Dobot:
 
         for seg_index in range(len(segments)):
             segment = segments[seg_index]
-            print(f"# seg {seg_index}:\n{segment}")
+            if debug:
+                print(f"# seg {seg_index}:\n{segment}")
 
             # determine the required number of slices in each part across all joints
             slices = np.ceil(segment.phase_duration * 50.0).astype(int)
             totalSlices = int(slices.sum())
-            print_arr("slices, total", segment.phase_duration * 50., (totalSlices,))
+            if debug:
+                print_arr("slices, total", segment.phase_duration * 50., (totalSlices,))
 
             commands = 1
             prev_joint_pos = segment.start
@@ -732,27 +737,31 @@ class Dobot:
                 if commands <= slices[ACCEL] and slices[ACCEL] > 0:
                     t = commands / 50.0
                     s = segment.v_start * t + 0.5 * segment.joint_accel * t * t
-                    print_arr("accelerating", [t], s)
+                    if debug:
+                        print_arr("accelerating", [t], s)
                 elif commands <= slices[ACCEL] + slices[FLAT]:
                     flat_cmd = commands - slices[ACCEL]
                     t = flat_cmd / 50.0
                     s = segment.phase_distances[ACCEL] + segment.joint_v_peak * t
-                    print_arr("constant", [t], s)
+                    if debug:
+                        print_arr("constant", [t], s)
                 else:
                     dec_cmd = commands - slices[ACCEL] - slices[FLAT]
                     t = dec_cmd / 50.0
                     s = segment.phase_distances[ACCEL] + segment.phase_distances[FLAT] + (
                             segment.joint_v_peak * t - 0.5 * segment.joint_decel * t * t
                     )
-                    print_arr("decelerating", [t], s)
+                    if debug:
+                        print_arr("decelerating", [t], s)
 
-                print_arr("prev joint", prev_joint_pos)
                 next_joint_pos = segment.start + np.sign(segment.delta) * s
-                delta = None
-                if prev_joint_pos is not None:
-                    # FIXME: calc num steps from delta to be more precise?
-                    delta = np.abs(next_joint_pos-prev_joint_pos).sum()
-                print_arr("next joint, delta", next_joint_pos, delta)
+                if debug:
+                    print_arr("prev joint", prev_joint_pos)
+                    delta = None
+                    if prev_joint_pos is not None:
+                        # FIXME: calc num steps from delta to be more precise?
+                        delta = np.abs(next_joint_pos-prev_joint_pos).sum()
+                    print_arr("next joint, delta", next_joint_pos, delta)
                 prev_joint_pos = next_joint_pos
 
                 nextToolRotation = self._toolRotation + (
