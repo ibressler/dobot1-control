@@ -347,11 +347,11 @@ class SegmentParams:
 
 class Dobot:
     # See calibrate-accelerometers.py for details
-    _accelOffsetRear = 1024
+    _accelOffsetRear = 1024  # FIXME: move to driver? or into configurable DobotConfig obj
     _accelOffsetFront = 1024
 
     def __init__(self, port, rate=115200, timeout=0.025, debug=False, plot=False, fake=False,
-                 jointMaxAccelerations=None, sca1000Sensors=False):
+                 jointMaxAccelerations=None, sca1000Sensors=False, endEffectorOffset=None):
         """
         Initializes the Dobot control class with parameters for serial communication, debugging,
         plotting options, and maximum joint accelerations. Also initializes internal configurations
@@ -376,6 +376,9 @@ class Dobot:
             This changes conversion of sensor values to degrees and thus affects positioning.
             Defaults to False.
         :type sca1000Sensors: bool, optional
+        :param endEffectorOffset: Offset or distance (horizontal, vertical) of end effector tool from joint 3 in mm.
+            Defaults to (50.9, 15.).
+        :type endEffectorOffset: tuple[float, float], optional
         """
         self._debugOn = debug
         self._fake = fake
@@ -389,7 +392,7 @@ class Dobot:
         else:
             self._driver.Open(timeout)
         self._plotter = DobotPlotter() if plot else None
-        self._kinematics = DobotKinematics(debug=debug)
+        self._kinematics = DobotKinematics(endEffectorOffset=endEffectorOffset, debug=debug)
         self._toolRotation = 0
         self._gripper = 480
         # Per-joint acceleration limits in joint units per second^2.

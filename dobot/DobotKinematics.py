@@ -19,8 +19,6 @@ import sys
 # Dimensions in mm
 lengthRearArm = 135.0
 lengthFrontArm = 160.0
-# Horizontal distance from Joint3 to the center of the tool mounted on the end effector.
-distanceTool = 50.9
 # Joint1 height.
 heightFromGround = 80.0 + 23.0
 
@@ -38,19 +36,28 @@ piThreeFourths = math.pi * 3.0 / 4.0
 
 
 class DobotKinematics:
-    def __init__(self, debug=False):
+    def __init__(self, endEffectorOffset=(50.9, 15.), debug=False):
+        """
+        Manages the Dobot geometry configuration with an end effector offset and an optional debug mode.
+
+        :param endEffectorOffset: Offset or distance (horizontal, vertical) of end effector tool from joint 3 in mm.
+            Defaults to (50.9, 15.), the horizontal distance from Joint3 to the center of the tool mounting position
+            on the standard end effector, see `docs/img/dobot-geometry.png`.
+        :param debug: Indicates whether the debug mode is enabled. Pass True to enable
+            debugging or False to disable it.
+        """
         self._debugOn = debug
+        self._endEffectorOffset = endEffectorOffset
 
     def _debug(self, *args):
         if self._debugOn:
             print(*args)
 
-    @staticmethod
-    def coordinatesFromAngles(baseAngle, rearArmAngle, frontArmAngle):
-        radius = lengthRearArm * math.cos(rearArmAngle) + lengthFrontArm * math.cos(frontArmAngle) + distanceTool
+    def coordinatesFromAngles(self, baseAngle, rearArmAngle, frontArmAngle):
+        radius = lengthRearArm * math.cos(rearArmAngle) + lengthFrontArm * math.cos(frontArmAngle) + self._endEffectorOffset[0]
         x = radius * math.cos(baseAngle)
         y = radius * math.sin(baseAngle)
-        z = heightFromGround - lengthFrontArm * math.sin(frontArmAngle) + lengthRearArm * math.sin(rearArmAngle)
+        z = heightFromGround - lengthFrontArm * math.sin(frontArmAngle) + lengthRearArm * math.sin(rearArmAngle) - self._endEffectorOffset[1]
         return x, y, z
 
     def anglesFromCoordinates(self, xyz, debug=False):
@@ -62,7 +69,7 @@ class DobotKinematics:
         if debug:
             self._debug("radiusTool", radiusTool)
         # Radius to joint3.
-        radius = radiusTool - distanceTool
+        radius = radiusTool - self._endEffectorOffset[0]
         if debug:
             self._debug("radius", radius)
         baseAngle = math.atan2(xyz[1], xyz[0])
@@ -76,7 +83,7 @@ class DobotKinematics:
         jointY = radius * math.sin(baseAngle)
         if debug:
             self._debug("jointY", jointY)
-        actualZ = xyz[2] - heightFromGround
+        actualZ = xyz[2] - heightFromGround + self._endEffectorOffset[1]
         if debug:
             self._debug("actualZ", actualZ)
         # Imaginary segment connecting joint1 with joint2, squared.
