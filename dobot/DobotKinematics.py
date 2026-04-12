@@ -14,6 +14,9 @@ License: MIT
 """
 
 import math
+
+import numpy as np
+
 from dobot.DobotBase import DobotBase
 
 # Dimensions in mm
@@ -44,7 +47,7 @@ class DobotKinematics(DobotBase):
         x = radius * math.cos(baseAngle)
         y = radius * math.sin(baseAngle)
         z = heightFromGround - lengthFrontArm * math.sin(frontArmAngle) + lengthRearArm * math.sin(rearArmAngle) - self._endEffectorOffset[1]
-        return x, y, z
+        return np.array((x, y, z), dtype=float)
 
     def anglesFromCoordinates(self, xyz, debug=False):
         """
@@ -101,7 +104,7 @@ class DobotKinematics(DobotBase):
         if debug:
             self._debug("ik front angle", frontAngle)
 
-        return baseAngle, rearAngle, frontAngle
+        return np.array((baseAngle, rearAngle, frontAngle), dtype=float)
 
     # angles passed as arguments here should be real world angles (horizontal = 0, below is negative, above is positive)
     # i.e., they should be set up the same way as the unit circle is

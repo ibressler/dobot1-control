@@ -535,7 +535,7 @@ class Dobot(DobotBase):
         currBaseAngle = piTwo * self._baseSteps / baseActualStepsPerRevolution
         currRearAngle = .5*np.pi - piTwo * self._rearSteps / rearArmActualStepsPerRevolution
         currFrontAngle = piTwo * self._frontSteps / frontArmActualStepsPerRevolution
-        return np.array(self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle), dtype=float)
+        return self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle)
 
     def _prepareAnglesSlice(self, angles, debug=False):
         currSteps = np.array([self._baseSteps, self._rearSteps, self._frontSteps])
@@ -827,7 +827,7 @@ class Dobot(DobotBase):
                 self._frontSteps += movedSteps[2]
 
                 if self._plotter:
-                    nextPos = np.array(self._kinematics.coordinatesFromAngles(*next_joint_pos), dtype=float)
+                    nextPos = self._kinematics.coordinatesFromAngles(*next_joint_pos)
                     self._plotter.add_move_data(self.pos, nextPos)
 
         self._toolRotation = toolRotation
