@@ -69,6 +69,32 @@ BASE, REAR, FRONT = range(3)
 ACCEL, FLAT, DECEL = range(3)
 JOINT_NAME = ['base', 'rear', 'front']
 
+
+def valueToStr(v):
+    if isinstance(v, (float, np.floating)):
+        s = f"{v: 7.4f}"
+    elif isinstance(v, (bool, np.bool_)):
+        s = f"{str(v):>7s}"
+    elif isinstance(v, (int, np.integer)):  # int?
+        s = f"{v:>7d}"
+    else:
+        s = f"{v:>7s}"  # string?
+    return s
+
+def arrayToStr(arr):
+    if arr is None:
+        return "None"
+    try:
+        return f"({",".join([valueToStr(v) for v in arr])})"
+    except TypeError:
+        return valueToStr(arr)
+
+def arraysToStr(*args):
+    return [arrayToStr(arr) for arr in args]
+
+def print_arr(prefix, *args):
+    print(f"{str(prefix):>15s}", *arraysToStr(*args))
+
 class DobotPlotter:
     def __init__(self):
         import matplotlib.pyplot as plt
@@ -146,31 +172,6 @@ class DobotPlotter:
 
         plt.tight_layout()
         plt.show()
-
-def valueToStr(v):
-    if isinstance(v, (float, np.floating)):
-        s = f"{v: 7.4f}"
-    elif isinstance(v, (bool, np.bool_)):
-        s = f"{str(v):>7s}"
-    elif isinstance(v, (int, np.integer)):  # int?
-        s = f"{v:>7d}"
-    else:
-        s = f"{v:>7s}"  # string?
-    return s
-
-def arrayToStr(arr):
-    if arr is None:
-        return "None"
-    try:
-        return f"({",".join([valueToStr(v) for v in arr])})"
-    except TypeError:
-        return valueToStr(arr)
-
-def arraysToStr(*args):
-    return [arrayToStr(arr) for arr in args]
-
-def print_arr(prefix, *args):
-    print(f"{str(prefix):>15s}", *arraysToStr(*args))
 
 class SegmentParams:
     start = None
