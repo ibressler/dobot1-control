@@ -435,9 +435,9 @@ class Dobot(DobotBase):
         if baseLimitDeg is None:
             baseLimitDeg = (-90.0, 90.0)
         if rearLimitDeg is None:
-            rearLimitDeg = (0.0, 105.0)
+            rearLimitDeg = (-15., 90.0)
         if frontLimitDeg is None:
-            frontLimitDeg = (-10., 100.)
+            frontLimitDeg = (-23., 83.)
         self._limitsRad = np.deg2rad(np.array((baseLimitDeg, rearLimitDeg, frontLimitDeg)))
         print_arr(f"Base  joint angular limits in degrees:", np.rad2deg(self._limitsRad[BASE]))
         print_arr(f"Rear  joint angular limits in degrees:", np.rad2deg(self._limitsRad[REAR]))
