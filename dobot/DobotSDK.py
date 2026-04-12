@@ -332,11 +332,12 @@ class SegmentParams:
                 )
                 print_arr("rel_mismatch", (f"{joint_rel * 100.0:.2f}%" for joint_rel in rel_mismatch))
             if len(mismatch) > 1:
-                factor = 0.7  # typically between 60 % and 75% of the mismatch
+                factor = 0.7  # typically between 65 % and 75% of the mismatch
                 if mismatch[0]-mismatch[1] != 0:
                     factor = (mismatch[0])*(factors[1]-factors[0]) / (mismatch[0]-mismatch[1])
                 factors.append(factor)
-                print(f"Applying {factors[-1]} mismatch factor.", f"({factor})" if factor > 1 else "")
+                if debug:
+                    print(f"Applying {factors[-1]} mismatch factor.", f"({factor})" if factor > 1 else "")
             if not fix_mismatch:
                 break
 
@@ -605,20 +606,6 @@ class Dobot(DobotBase):
             while not ret[1]:
                 self.steps = self._driver.Steps(cmdVals, dirs, self._gripper, int(toolRotation))
                 ret = self.steps
-
-    def freqToCmdVal(self, freq):
-        """
-        See DobotDriver.freqToCmdVal()
-        """
-        return self._driver.freqToCmdVal(freq)
-
-    @staticmethod
-    def _axis_sign(value):
-        if value > 0.0:
-            return 1
-        if value < 0.0:
-            return -1
-        return 0
 
     @staticmethod
     def _unwrap_angles(angles_list):
