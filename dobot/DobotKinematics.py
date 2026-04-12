@@ -24,15 +24,6 @@ heightFromGround = 80.0 + 23.0
 lengthRearSquared = pow(lengthRearArm, 2)
 lengthFrontSquared = pow(lengthFrontArm, 2)
 
-armSquaredConst = pow(lengthRearArm, 2) + pow(lengthFrontArm, 2)
-armDoubledConst = 2.0 * lengthRearArm * lengthFrontArm
-radiansToDegrees = 180.0 / math.pi
-degreesToRadians = math.pi / 180.0
-
-piHalf = math.pi / 2.0
-piTwo = math.pi * 2.0
-piThreeFourths = math.pi * 3.0 / 4.0
-
 
 class DobotKinematics:
     def __init__(self, endEffectorOffset=(50.9, 15.), debug=False):
@@ -100,10 +91,10 @@ class DobotKinematics:
         )
         if debug:
             self._debug("q2", q2)
-        rearAngle = piHalf - (q1 + q2)
+        rearAngle = .5 * math.pi - (q1 + q2)
         if debug:
             self._debug("ik rear angle", rearAngle)
-        frontAngle = piHalf - (
+        frontAngle = .5 * math.pi - (
             math.acos(
                 (lengthRearSquared + lengthFrontSquared - hypotenuseSquared) / (2.0 * lengthRearArm * lengthFrontArm)
             )
@@ -113,12 +104,6 @@ class DobotKinematics:
             self._debug("ik front angle", frontAngle)
 
         return baseAngle, rearAngle, frontAngle
-
-    @staticmethod
-    def get_distance_from_origin_to_cartesian_point_3D(x, y, z):
-        # get distance from origin (0,0,0) to end point in 3D using pythagorean thm in 3D; distance = sqrt(x^2+y^2+z^2)
-        distanceToEndPoint = math.sqrt(x**2 + y**2 + z**2)
-        return distanceToEndPoint
 
     # angles passed as arguments here should be real world angles (horizontal = 0, below is negative, above is positive)
     # i.e., they should be set up the same way as the unit circle is

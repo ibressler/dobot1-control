@@ -30,7 +30,9 @@ import math
 import numpy as np
 
 from dobot.DobotDriver import DobotDriver
-from dobot.DobotKinematics import DobotKinematics, piHalf, piTwo
+from dobot.DobotKinematics import DobotKinematics
+
+piTwo = 2. * np.pi
 
 # Workaround to support Python 2/3
 if sys.version_info > (3,):
@@ -472,7 +474,7 @@ class Dobot:
                 accelFrontZ += ret[6]
             if successes > 0:
                 divisor = float(successes)
-                rearAngle = piHalf - self._driver.accel3DXToRadians(
+                rearAngle = .5*np.pi - self._driver.accel3DXToRadians(
                     accelRearX / divisor, accelRearY / divisor, accelRearZ / divisor
                 )
                 frontAngle = -self._driver.accel3DXToRadians(
@@ -483,7 +485,7 @@ class Dobot:
                 print("See open-dobot wiki")
                 print("Assuming rear arm vertical and front arm horizontal")
                 rearAngle = 0
-                frontAngle = -piHalf
+                frontAngle = -.5*np.pi
         print(f"Angles read: rear= {np.rad2deg(rearAngle):.3f}°, front= {np.rad2deg(frontAngle):.3f}°")
         print("    [ expecting: rear @vertical -> 0°, front @horizontal -> 0° ]")
         self._baseSteps = long(0)
@@ -503,7 +505,7 @@ class Dobot:
     @property
     def pos(self):
         currBaseAngle = piTwo * self._baseSteps / baseActualStepsPerRevolution
-        currRearAngle = piHalf - piTwo * self._rearSteps / rearArmActualStepsPerRevolution
+        currRearAngle = .5*np.pi - piTwo * self._rearSteps / rearArmActualStepsPerRevolution
         currFrontAngle = piTwo * self._frontSteps / frontArmActualStepsPerRevolution
         return np.array(self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle), dtype=float)
 
