@@ -745,6 +745,7 @@ class Dobot(DobotBase):
                 print(f"# seg {seg_index}:\n{segments[seg_index]}")
             segments[seg_index].update(v_max, fix_mismatch=True, debug=debug)
 
+        prevMovedSteps = None
         for seg_index in range(len(segments)):
             segment = segments[seg_index]
             if debug:
@@ -757,8 +758,6 @@ class Dobot(DobotBase):
                 print_arr("slices, total", segment.phase_duration * 50., (totalSlices,))
 
             commands = 1
-            prev_joint_pos = segment.start
-            next_joint_pos = None
             while commands <= totalSlices:
                 #print(f"{commands=}", f"{slices[ACCEL]=}")
                 if commands <= slices[ACCEL] and slices[ACCEL] > 0:
@@ -782,23 +781,16 @@ class Dobot(DobotBase):
                         print_arr("decelerating", [t], s)
 
                 next_joint_pos = segment.start + np.sign(segment.delta) * s
-                if debug:
-                    print_arr("prev joint", prev_joint_pos)
-                    delta = None
-                    if prev_joint_pos is not None:
-                        # FIXME: calc num steps from delta to be more precise?
-                        delta = np.abs(next_joint_pos-prev_joint_pos).sum()
-                    print_arr("next joint, delta", next_joint_pos, delta)
-                prev_joint_pos = next_joint_pos
-
                 nextToolRotation = self._toolRotation + (
                         (toolRotation - self._toolRotation) * (commands / float(totalSlices))
                 )
-
                 cmdVals, dirs, movedSteps, leftSteps = self._prepareAnglesSlice(next_joint_pos, debug=debug)
-                skip_this_slice = np.all(movedSteps == 0)
+                stepDelta = 0
+                if prevMovedSteps is not None:
+                    stepDelta = np.abs(movedSteps - prevMovedSteps).sum()
+                skip_this_slice = np.all(np.abs(movedSteps) <= 1) and stepDelta > 20
                 if debug:
-                    self._debug("steps to move:", *movedSteps,
+                    self._debug("steps to move:", *movedSteps, "delta:", stepDelta,
                                 "skipped!" if skip_this_slice else "")
                     self._debug("leftovers", *leftSteps)
                 commands += 1
@@ -806,6 +798,7 @@ class Dobot(DobotBase):
                     continue
 
                 self._moveToAnglesSlice(cmdVals, dirs, nextToolRotation)
+                prevMovedSteps = movedSteps
                 if self._plotter:
                     self._plotter.add_slice_data(movedSteps)
 
