@@ -1,18 +1,18 @@
 #! /usr/bin/env python
 
 """
-open-dobot Accelerometers Calibration tool.
+open-dobot accelerometer calibration tool.
 
 This tool continuously reports accelerometers and angles from those.
 
 Use this tool to find offsets for your accelerometers.
 
-Follow the procedure below to enable accelerometers reporting mode on FPGA.
-No action required on the RAMPS as GY-521 accelerometers can be read at any time there.
+Follow the procedure below to enable the accelerometer reporting mode on FPGA.
+No action is required on the RAMPS as GY-521 accelerometers can be read at any time there.
 1. Turn off power on the arm and disconnect USB cable
 2. Remove accelerometers from the arm and put them on a flat surface that has no inclination
 3. Connect USB cable
-4. Enable accelerometers reporting mode:
+4. Enable the accelerometer reporting mode:
    4.1. Press and hold the "Sensor Calibration" button on the FPGA version
    		or ground pin D23 on AUX-4 on the RAMPS version
    4.2. Press and release the "Reset" button

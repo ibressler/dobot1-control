@@ -3,7 +3,7 @@ open-dobot inverse kinematics.
 
 Implements inverse and forward kinematics functions.
 
-Find firmware, driver and SDK at https://github.com/maxosprojects/open-dobot
+Find firmware, driver, and SDK at https://github.com/maxosprojects/open-dobot
 
 Author: maxosprojects (March 18, 2016)
 Additional Authors: <put your name here>
@@ -14,7 +14,6 @@ License: MIT
 """
 
 import math
-import sys
 
 # Dimensions in mm
 lengthRearArm = 135.0
@@ -62,10 +61,10 @@ class DobotKinematics:
 
     def anglesFromCoordinates(self, xyz, debug=False):
         """
-        http://www.learnaboutrobots.com/inverseKinematics.htm
+        https://www.learnaboutrobots.com/inverseKinematics.htm
         """
         # Radius to the center of the tool.
-        radiusTool = math.sqrt(pow(xyz[0], 2) + pow(xyz[1], 2))
+        radiusTool = math.sqrt(xyz[0]**2 + xyz[1]**2)
         if debug:
             self._debug("radiusTool", radiusTool)
         # Radius to joint3.
@@ -118,7 +117,7 @@ class DobotKinematics:
     @staticmethod
     def get_distance_from_origin_to_cartesian_point_3D(x, y, z):
         # get distance from origin (0,0,0) to end point in 3D using pythagorean thm in 3D; distance = sqrt(x^2+y^2+z^2)
-        distanceToEndPoint = math.sqrt(pow(x, 2) + pow(y, 2) + pow(z, 2))
+        distanceToEndPoint = math.sqrt(x**2 + y**2 + z**2)
         return distanceToEndPoint
 
     # angles passed as arguments here should be real world angles (horizontal = 0, below is negative, above is positive)
@@ -137,7 +136,7 @@ class DobotKinematics:
             ret = False
 
         # check the foreArmAngle
-        # the valid forearm angle is dependent on the rear arm angle. The real world angle of the forearm
+        # the valid forearm angle is dependent on the rear arm angle. The real-world angle of the forearm
         # (0 degrees = horizontal) needs to be evaluated.
         # min empirically determined to be around -105 degrees. Using -102.
         # max empirically determined to be around 21 degrees. Using 18.

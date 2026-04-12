@@ -142,7 +142,6 @@ class DobotPlotter:
         plt.show()
 
 def valueToStr(v):
-    s = ""
     if isinstance(v, (float, np.floating)):
         s = f"{v: 7.4f}"
     elif isinstance(v, (bool, np.bool_)):
