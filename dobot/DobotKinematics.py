@@ -6,7 +6,7 @@ Implements inverse and forward kinematics functions.
 Find firmware, driver, and SDK at https://github.com/maxosprojects/open-dobot
 
 Author: maxosprojects (March 18, 2016)
-Additional Authors: <put your name here>
+Additional Authors: Ingo Breßler (April 12, 2026), <put your name here>
 
 Version 1.2.2
 

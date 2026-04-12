@@ -18,7 +18,7 @@ SDK keeps track of the current end effector pose, thus in case the arm slips or 
 in move (with the "Laser Adjustment" button), it has to be re-initialized and SDK re-initialized.
 
 Author: maxosprojects (March 18, 2016)
-Additional Authors: <put your name here>
+Additional Authors: Ingo Breßler (April 12, 2026), <put your name here>
 
 Version: 1.2.2
 
