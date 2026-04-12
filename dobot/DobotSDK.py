@@ -412,13 +412,13 @@ class Dobot(DobotBase):
         # The MoveWithSpeed() velocity argument is interpreted as a percentage of these maxima.
         if jointMaxVelDeg is None:
             jointMaxVelDeg = (45.0, 45.0, 45.0)  # fallback deg/sec
-        self._jointMaxVelDeg = np.array(jointMaxVelDeg, dtype=float)
+        self._jointMaxVelDeg = np.clip(np.array(jointMaxVelDeg, dtype=float), 1e-2, 360.)
         print_arr(f"Maximum joint velocity in degrees/sec:      {self._jointMaxVelDeg}")
         # Per-joint acceleration limits in joint units per second^2.
         # The MoveWithSpeed() accel argument is interpreted as a percentage of these maxima.
         if jointMaxAccelDeg is None:
             jointMaxAccelDeg = (90.0, 90.0, 90.0)  # fallback deg/sec-squared
-        self._jointMaxAccelDeg = np.array(jointMaxAccelDeg, dtype=float)
+        self._jointMaxAccelDeg = np.clip(np.array(jointMaxAccelDeg, dtype=float), 1e-2, 360.)
         print_arr(f"Maximum joint acceleration in degrees/sec²: {self._jointMaxAccelDeg}")
         # Last directions to compensate for backlash.
         self._lastBaseDirection = 0
