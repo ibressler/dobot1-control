@@ -538,6 +538,10 @@ class Dobot(DobotBase):
         currFrontAngle = piTwo * self._frontSteps / frontArmActualStepsPerRevolution
         return self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle)
 
+    @staticmethod
+    def fmtPos(pos: np.ndarray, prefix="pos"):
+        return prefix+": "+", ".join([f"{coord} = {pos[i]:.2f}" for i, coord in enumerate(("x", "y", "z"))])
+
     def _prepareAnglesSlice(self, angles, debug=False):
         currSteps = np.array([self._baseSteps, self._rearSteps, self._frontSteps])
         multipliers = np.array([
