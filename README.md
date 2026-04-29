@@ -7,3 +7,11 @@ It's further development of the [DobotSDK package](https://github.com/maxosproje
 - motion planning, move through a series of points with the highest possible speed allowed by the given maximum velocity and acceleration, full stops on direction changes only.
 - SCA1000 accelerometers support (different conversion factors)
 - limits (WIP)
+
+## Testing
+
+This project uses `pytest` for testing. To run the tests, install the dependencies and run:
+
+```bash
+pytest
+```

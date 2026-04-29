@@ -43,6 +43,10 @@ class DobotKinematics(DobotBase):
         self._endEffectorOffset = endEffectorOffset
 
     def coordinatesFromAngles(self, baseAngle, rearArmAngle, frontArmAngle):
+        """
+        Calculates the Cartesian coordinates (x, y, z) from the given joint angles (base, rear arm, front arm).
+        """
+        rearArmAngle = .5 * math.pi - rearArmAngle
         radius = lengthRearArm * math.cos(rearArmAngle) + lengthFrontArm * math.cos(frontArmAngle) + self._endEffectorOffset[0]
         x = radius * math.cos(baseAngle)
         y = radius * math.sin(baseAngle)
