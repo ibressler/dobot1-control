@@ -532,11 +532,30 @@ class Dobot(DobotBase):
         print("--=========--")
 
     @property
+    def posAngles(self):
+        """
+        Calculates and returns the positional angles of the joints in radians.
+
+        The computed angles are derived based on the number of current steps recorded
+        for each joint and the values of the actual steps per revolution for each joint.
+
+        It has to return the same angles as the 'Angles read:' output of the constructor __init__().
+
+        :return: Positional angles of the joints in radians as a numpy array.
+        :rtype: numpy.ndarray
+        """
+        currSteps = np.array([self._baseSteps, self._rearSteps, self._frontSteps])
+        multipliers = np.array([
+            baseActualStepsPerRevolution,
+            rearArmActualStepsPerRevolution,
+            frontArmActualStepsPerRevolution
+        ])
+        angles = 2. * np.pi * currSteps / multipliers
+        return angles
+
+    @property
     def pos(self):
-        currBaseAngle = piTwo * self._baseSteps / baseActualStepsPerRevolution
-        currRearAngle = .5*np.pi - piTwo * self._rearSteps / rearArmActualStepsPerRevolution
-        currFrontAngle = piTwo * self._frontSteps / frontArmActualStepsPerRevolution
-        return self._kinematics.coordinatesFromAngles(currBaseAngle, currRearAngle, currFrontAngle)
+        return self._kinematics.coordinatesFromAngles(*self.posAngles)
 
     @staticmethod
     def fmtPos(pos: np.ndarray, prefix="pos"):
