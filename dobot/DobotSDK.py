@@ -355,10 +355,6 @@ class SegmentParams:
                 print_arr("v_start", self.v_start)
 
 class Dobot(DobotBase):
-    # See calibrate-accelerometers.py for details
-    _accelOffsetRear = 1024  # FIXME: move to driver? or into configurable DobotConfig obj
-    _accelOffsetFront = 1024
-
     def __init__(self, port, rate=115200, timeout=0.025, debug=False, plot=False, fake=False,
                  jointMaxVelDeg=None, jointMaxAccelDeg=None, sca1000Sensors=False, endEffectorOffset=None,
                  baseLimitDeg=None, rearLimitDeg=None, frontLimitDeg=None):
@@ -462,12 +458,6 @@ class Dobot(DobotBase):
             attempts -= 1
         return ret
 
-    def _rear_angle_fpga(self, sensorValue):
-        return (math.pi * .5) - self._driver.accelToRadians(sensorValue, self._accelOffsetRear)
-
-    def _front_angle_fpga(self, sensorValue):
-        return self._driver.accelToRadians(sensorValue, self._accelOffsetFront)
-
     def _init_accelerometers(self):
         print("--=========--")
         print("Initializing accelerometers")
@@ -475,8 +465,8 @@ class Dobot(DobotBase):
             # In FPGA v1.0 SPI accelerometers are read only when Arduino boots. The readings
             # are already available, so read once.
             _, accelRearX, _, _, accelFrontX, _, _ = self._get_accelerometers_raw()
-            rearAngle = self._rear_angle_fpga(accelRearX)
-            frontAngle = self._front_angle_fpga(accelFrontX)
+            rearAngle = self._driver.accelToRadiansAxis(REAR, accelRearX)
+            frontAngle = self._driver.accelToRadiansAxis(FRONT, accelFrontX)
         else:
             # In RAMPS accelerometers are on I2C bus and can be read at any time. We need to
             # read them multiple times to get average as MPU-6050 has greater resolution but is noisy.
@@ -526,7 +516,7 @@ class Dobot(DobotBase):
             self._frontSteps,
         )
         print("Reading back what was set:", self._driver.GetCounters())
-        print("Current estimated coordinates:", self.pos)
+        print(self.fmtPos(self.pos, "Current estimated coordinates"))
         print("--=========--")
 
     @property

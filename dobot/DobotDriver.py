@@ -43,7 +43,10 @@ CMD_BOARD_VERSION = 12
 
 
 class DobotDriver(DobotBase):
-    def __init__(self, comport, rate=115200, sca1000Sensors=False):
+    # See calibrate-accelerometers.py for details
+    _accelOffset = (1024, 1024)  # FIXME: move to configurable DobotConfig obj?
+
+    def __init__(self, comport, rate=115200, sca1000Sensors=False, accelOffset=None):
         """
         Initializes a serial communication object.
 
@@ -57,12 +60,16 @@ class DobotDriver(DobotBase):
         :type rate: int
         :param sca1000Sensors: Whether the Dobot has SCA1000-D01 sensors installed. Defaults to False.
         :type sca1000Sensors: bool
+        :param accelOffset: Tuple of accelerometer offsets for rear and front arms, respectively. Defaults to None.
+        :type accelOffset: tuple, optional
         """
         self._accelConversion = 493.56
         if sca1000Sensors:
             # on a Dobot with SCA1000-D01 sensors, the maximum accelerometer value of the rear arm
             # when vertical (90°) is 1538, value at 0° is 1024, so the offset is fine here
             self._accelConversion = 514.
+        if accelOffset is not None:
+            self._accelOffset = accelOffset
         self._lock = threading.Lock()
         self._comport = comport
         self._rate = rate
@@ -747,7 +754,7 @@ class DobotDriver(DobotBase):
             return self._stopSeq, 0, steps
         return self.reverseBits32(val), actualSteps, steps - actualSteps
 
-    def accelToRadians(self, val, offset):
+    def accelToRadians(self, val: int, offset: int):
         """
         Converts accelerometer raw value to radians.
 
@@ -762,6 +769,25 @@ class DobotDriver(DobotBase):
             return math.asin(float(val - offset) / self._accelConversion)
         except ValueError:
             return np.pi*.5
+
+    def accelToRadiansAxis(self, axis: int, val: int):
+        """
+        Converts accelerometer raw value to radians.
+
+        :param axis: Axis to get the value for: rear (1) or front (2).
+        :type axis: int
+        :param val: Raw accelerometer value.
+        :type val: int
+        :return: The angle in radians.
+        :rtype: float
+        """
+        axis = int(axis)
+        if axis not in (REAR, FRONT):
+            raise ValueError(f"Invalid axis! Must be {REAR} (rear) or {FRONT} (front).")
+        result = self.accelToRadians(val, self._accelOffset[axis-1])
+        if axis == REAR:
+            result = np.pi * .5 - result
+        return result
 
     @staticmethod
     def accel3DXToRadians(x, y, z):
