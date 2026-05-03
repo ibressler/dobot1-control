@@ -48,6 +48,7 @@ from dobot.DobotBase import REAR, FRONT, arrayToStr
 positionDefaults = {
 	'pos1': (120, 0, 0),
 	'pos2': (320, 0, 0),
+	'offset': (51, 15),
 }
 
 def toEndEffectorHeight(kinematics, rear, front):
@@ -222,6 +223,10 @@ def main():
 						metavar=('X', 'Y', 'Z'), help=f'First position for calibration, default: {positionDefaults["pos1"]}')
 	parser.add_argument('--pos2', type=float, nargs=3, default=positionDefaults['pos2'],
 						metavar=('X', 'Y', 'Z'), help=f'Second position for calibration, default: {positionDefaults["pos2"]}')
+	parser.add_argument('--offset', type=float, nargs=2, default=positionDefaults['offset'],
+						metavar=('H', 'V'), help="End effector offset: (horizontal, vertical) distance "
+						"of the mounted tool from joint3 (see 'docs/img/dobot-geometry.png')"
+						f", default: {positionDefaults["offset"]}")
 	args = parser.parse_args()
 
 	if len(sys.argv) == 1:
@@ -249,7 +254,7 @@ def main():
 	driver = DobotDriver(port)
 	driver.Open()
 	# driver.Open(timeout=0.3)
-	kinematics = DobotKinematics(endEffectorOffset=(49., 64.))
+	kinematics = DobotKinematics(endEffectorOffset=args.offset)
 
 	if args.mode == 'positions':
 		positions_mode(driver, kinematics, (args.pos1, args.pos2))
