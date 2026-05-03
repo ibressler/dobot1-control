@@ -36,6 +36,7 @@ License: MIT
 from pathlib import Path
 import time
 import argparse
+import sys
 
 import numpy as np
 
@@ -98,11 +99,22 @@ def main():
 						help='Calibration mode (default: continuous)')
 	args = parser.parse_args()
 
-	# driver = DobotDriver('COM4')
-	try:
-		port = str(next(Path("/dev").glob("ttyACM*")))
-	except StopIteration:
-		print("Error: Could not find any ttyACM device in /dev")
+	if sys.platform.startswith("win"):
+		port = "COM4"
+	elif sys.platform.startswith("linux"):
+		try:
+			port = str(next(Path("/dev").glob("ttyACM*")))
+		except StopIteration:
+			print("Error: Could not find any ttyACM device in /dev")
+			return
+	elif sys.platform.startswith("darwin"):
+		try:
+			port = str(next(Path("/dev").glob("tty.usbmodem*")))
+		except StopIteration:
+			print("Error: Could not find any tty.usbmodem device in /dev")
+			return
+	else:
+		print(f"Unsupported platform: {sys.platform}")
 		return
 
 	driver = DobotDriver(port, accelOffset=(997, 1016))
