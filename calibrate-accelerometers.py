@@ -35,43 +35,85 @@ License: MIT
 
 from pathlib import Path
 import time
+import argparse
 
 import numpy as np
 
 from dobot import DobotDriver
 from dobot import DobotKinematics
+from dobot.DobotBase import REAR, FRONT, arrayToStr
 
-# driver = DobotDriver('COM4')
-driver = DobotDriver(str(next(Path("/dev").glob("ttyACM*"))))
-driver.Open()
-# driver.Open(timeout=0.3)
-kinematics = DobotKinematics()
 
-# Offsets must be found using this tool for your Dobot once
-# (rear arm, front arm)
-offsets = (1024, 1024)
+def toEndEffectorHeight(kinematics, rear, front):
+	_, _, z = kinematics.coordinatesFromAngles(0, rear, front)
+	return z
 
-def toEndEffectorHeight(rear, front):
-	ret = kinematics.coordinatesFromAngles(0, rear, front)
-	return ret[2]
-
-while True:
-	ts = time.time()
-	ret = driver.GetAccelerometers()
+def display_accelerometer_data(driver, kinematics, ret):
 	if ret[0]:
 		if driver.isFpga():
-			print("Rear arm: {0:10f}° | Front arm: {1:10f}° | End effector height: {2:10f} mm | Raw rear arm: {3:4d} | Raw front arm: {4:4d}".format(
-				np.rad2deg(driver.accelToRadians(ret[1], offsets[0])), np.rad2deg(driver.accelToRadians(ret[4], offsets[1])),
-				toEndEffectorHeight(driver.accelToRadians(ret[1], offsets[0]), driver.accelToRadians(ret[4], offsets[1])),
-				ret[1], ret[4]))
+			rear_rad = driver.accelToRadiansAxis(REAR, ret[1])
+			front_rad = driver.accelToRadiansAxis(FRONT, ret[4])
+			rear_deg = np.rad2deg(rear_rad)
+			front_deg = np.rad2deg(front_rad)
+			xyz = kinematics.coordinatesFromAngles(0, rear_rad, front_rad)
+			print(f"Angles rear: {rear_deg:10f}°, front: {front_deg:10f}° | "
+				  f"Cartesian coord: {arrayToStr(xyz)} mm | "
+				  f"Raw rear: {ret[1]:4d}, front: {ret[4]:4d}")
 		else:
-			print("Rear arm: {0:6.2f}° | Front arm: {1:6.2f}° | End effector height: {2:7.2f} mm | Raw rear arm: {3:6d} {4:6d} {5:6d} | Raw front arm: {6:6d} {7:6d} {8:6d}".format(
-				np.rad2deg(driver.accel3DXToRadians(ret[1], ret[2], ret[3])), -np.rad2deg(driver.accel3DXToRadians(ret[4], ret[5], ret[6])),
-				toEndEffectorHeight(driver.accel3DXToRadians(ret[1], ret[2], ret[3]), -driver.accel3DXToRadians(ret[4], ret[5], ret[6])),
-				ret[1], ret[2], ret[3], ret[4], ret[5], ret[6]))
+			rear_rad = driver.accel3DXToRadians(ret[1], ret[2], ret[3])
+			front_rad = -driver.accel3DXToRadians(ret[4], ret[5], ret[6])
+			rear_deg = np.rad2deg(rear_rad)
+			front_deg = np.rad2deg(front_rad)
+			xyz = kinematics.coordinatesFromAngles(0, rear_rad, front_rad).tolist()
+			print(f"Angles rear: {rear_deg:10f}°, front: {front_deg:10f}° | "
+				  f"Cartesian coord: {arrayToStr(xyz)} mm | "
+				  f"Raw rear: {ret[1]:6d} {ret[2]:6d} {ret[3]:6d}, "
+				  f"front: {ret[4]:6d} {ret[5]:6d} {ret[6]:6d}")
 	else:
 		print('Error occurred reading data')
-	# limit queries to 4x per second
-	tdelta = time.time() - ts
-	if tdelta < 0.25:
-		time.sleep(0.25 - tdelta)
+
+def continuous_mode(driver, kinematics):
+	while True:
+		ts = time.time()
+		ret = driver.GetAccelerometers()
+		display_accelerometer_data(driver, kinematics, ret)
+		# limit queries to 4x per second
+		tdelta = time.time() - ts
+		if tdelta < 0.25:
+			time.sleep(0.25 - tdelta)
+
+def positions_mode(driver, kinematics):
+	pos1 = (110,  0, 20)
+	pos2 = (320,  0, 20)
+
+	for i, pos in enumerate([pos1, pos2], 1):
+		posAngles = tuple(kinematics.anglesFromCoordinates(pos).tolist())
+		input(f"Move the arm to cartesian position {i} {pos}, angles {posAngles}, and press <enter>...")
+		ret = driver.GetAccelerometers()
+		display_accelerometer_data(driver, kinematics, ret)
+
+def main():
+	parser = argparse.ArgumentParser(description='open-dobot accelerometer calibration tool')
+	parser.add_argument('mode', choices=['continuous', 'positions'], nargs='?', default='continuous',
+						help='Calibration mode (default: continuous)')
+	args = parser.parse_args()
+
+	# driver = DobotDriver('COM4')
+	try:
+		port = str(next(Path("/dev").glob("ttyACM*")))
+	except StopIteration:
+		print("Error: Could not find any ttyACM device in /dev")
+		return
+
+	driver = DobotDriver(port, accelOffset=(997, 1016))
+	driver.Open()
+	# driver.Open(timeout=0.3)
+	kinematics = DobotKinematics(endEffectorOffset=(49., 64.))
+
+	if args.mode == 'positions':
+		positions_mode(driver, kinematics)
+	elif args.mode == 'continuous':
+		continuous_mode(driver, kinematics)
+
+if __name__ == '__main__':
+	main()
