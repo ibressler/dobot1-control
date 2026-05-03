@@ -45,6 +45,11 @@ from dobot import DobotKinematics
 from dobot.DobotBase import REAR, FRONT, arrayToStr
 
 
+positionDefaults = {
+	'pos1': (110, 0, 0),
+	'pos2': (320, 0, 0),
+}
+
 def toEndEffectorHeight(kinematics, rear, front):
 	_, _, z = kinematics.coordinatesFromAngles(0, rear, front)
 	return z
@@ -97,11 +102,15 @@ def main():
 	parser = argparse.ArgumentParser(description='open-dobot accelerometer calibration tool')
 	parser.add_argument('mode', choices=['continuous', 'positions'], nargs='?', default='continuous',
 						help='Calibration mode (default: continuous)')
-	parser.add_argument('--pos1', type=float, nargs=3, default=(110, 0, 20),
-						metavar=('X', 'Y', 'Z'), help='First position for calibration (default: 110 0 20)')
-	parser.add_argument('--pos2', type=float, nargs=3, default=(320, 0, 20),
-						metavar=('X', 'Y', 'Z'), help='Second position for calibration (default: 320 0 20)')
+	parser.add_argument('--pos1', type=float, nargs=3, default=positionDefaults['pos1'],
+						metavar=('X', 'Y', 'Z'), help=f'First position for calibration, default: {positionDefaults["pos1"]}')
+	parser.add_argument('--pos2', type=float, nargs=3, default=positionDefaults['pos2'],
+						metavar=('X', 'Y', 'Z'), help=f'Second position for calibration, default: {positionDefaults["pos2"]}')
 	args = parser.parse_args()
+
+	if len(sys.argv) == 1:
+		parser.print_help()
+		sys.exit(0)
 
 	if sys.platform.startswith("win"):
 		port = "COM4"
