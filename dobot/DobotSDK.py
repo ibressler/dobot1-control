@@ -337,8 +337,8 @@ class SegmentParams:
 
 class Dobot(DobotBase):
     def __init__(self, port, rate=115200, timeout=0.025, debug=False, plot=False, fake=False,
-                 jointMaxVelDeg=None, jointMaxAccelDeg=None, sca1000Sensors=False, endEffectorOffset=None,
-                 accelOffset=None, baseLimitDeg=None, rearLimitDeg=None, frontLimitDeg=None):
+                 jointMaxVelDeg=None, jointMaxAccelDeg=None, endEffectorOffset=None, accelOffset=None,
+                 accelConversion=None, baseLimitDeg=None, rearLimitDeg=None, frontLimitDeg=None):
         """
         Initializes the Dobot control class with parameters for serial communication, debugging,
         plotting options, and maximum joint accelerations. Also initializes internal configurations
@@ -362,15 +362,14 @@ class Dobot(DobotBase):
         :param jointMaxAccelDeg: Per-joint acceleration maximum limit in degrees per second squared.
             Defaults to (90.0, 90.0, 90.0).
         :type jointMaxAccelDeg: tuple[float, float, float], optional
-        :param sca1000Sensors: Enable when SCA1000 sensors are installed as accelerometers.
-            This changes conversion of sensor values to degrees and thus affects positioning.
-            Defaults to False.
-        :type sca1000Sensors: bool, optional
         :param endEffectorOffset: Offset or distance (horizontal, vertical) of end effector tool from joint 3 in mm.
             Defaults to (50.9, 15.).
         :type endEffectorOffset: tuple[float, float], optional
         :param accelOffset: Tuple of accelerometer offsets for rear and front arms, respectively. Defaults to None.
         :type accelOffset: tuple, optional
+        :param accelConversion: Conversion factor for accelerometer readings.
+            Defaults to 493.56 from the original code.
+        :type accelConversion: float, optional
         :param baseLimitDeg: Angular limits (min, max) for the base joint in degrees.
             Defaults to (-90.0, 90.0).
         :type baseLimitDeg: tuple[float, float], optional
@@ -383,7 +382,7 @@ class Dobot(DobotBase):
         """
         self._debugOn = debug
         self._fake = fake
-        self._driver = DobotDriver(port, rate, sca1000Sensors=sca1000Sensors, accelOffset=accelOffset)
+        self._driver = DobotDriver(port, rate, accelOffset=accelOffset, accelConversion=accelConversion)
         if fake:
             self._driver._ramps = True
             self._driver._stepCoeff = 20000

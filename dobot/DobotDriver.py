@@ -44,9 +44,10 @@ CMD_BOARD_VERSION = 12
 
 class DobotDriver(DobotBase):
     # See calibrate-accelerometers.py for details
-    _accelOffset = (1024, 1024)  # FIXME: move to configurable DobotConfig obj?
+    accelOffsetDefault = (1024, 1024)  # FIXME: move to configurable DobotConfig obj?
+    accelConversionDefault = 493.56
 
-    def __init__(self, comport, rate=115200, sca1000Sensors=False, accelOffset=None):
+    def __init__(self, comport, rate=115200, accelOffset=None, accelConversion=None):
         """
         Initializes a serial communication object.
 
@@ -58,18 +59,19 @@ class DobotDriver(DobotBase):
         :type comport: str
         :param rate: The baud rate for the communication. Defaults to 115200.
         :type rate: int
-        :param sca1000Sensors: Whether the Dobot has SCA1000-D01 sensors installed. Defaults to False.
-        :type sca1000Sensors: bool
-        :param accelOffset: Tuple of accelerometer offsets for rear and front arms, respectively. Defaults to None.
+        :param accelOffset: Tuple of accelerometer offsets for rear and front arms, respectively.
+            Defaults to (1024, 1024).
         :type accelOffset: tuple, optional
+        :param accelConversion: Conversion factor for accelerometer readings.
+            Defaults to 493.56 from the original code.
+        :type accelConversion: float, optional
         """
-        self._accelConversion = 493.56
-        if sca1000Sensors:
-            # on a Dobot with SCA1000-D01 sensors, the maximum accelerometer value of the rear arm
-            # when vertical (90°) is 1538, value at 0° is 1024, so the offset is fine here
-            self._accelConversion = 514.
+        self._accelOffset = self.accelOffsetDefault
         if accelOffset is not None:
             self._accelOffset = accelOffset
+        self._accelConversion = self.accelConversionDefault
+        if accelConversion is not None:
+            self._accelConversion = accelConversion
         self._lock = threading.Lock()
         self._comport = comport
         self._rate = rate
