@@ -12,7 +12,7 @@ Version: 1.2.2
 
 License: MIT
 """
-
+import numpy as np
 import serial
 import threading
 import time
@@ -763,7 +763,7 @@ class DobotDriver(DobotBase):
         try:
             return math.asin(float(val - offset) / self._accelConversion)
         except ValueError:
-            return halfPi
+            return np.pi*.5
 
     @staticmethod
     def accel3DXToRadians(x, y, z):
@@ -785,7 +785,7 @@ class DobotDriver(DobotBase):
             zf = float(z)
             return math.atan2(xf, math.sqrt(yf * yf + zf * zf))
         except ValueError:
-            return halfPi
+            return np.pi*.5
 
     def CalibrateJoint(self, joint, forwardCommand, backwardCommand, direction, pin, pinMode, pullup):
         """
