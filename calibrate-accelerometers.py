@@ -83,9 +83,9 @@ def continuous_mode(driver, kinematics):
 		if tdelta < 0.25:
 			time.sleep(0.25 - tdelta)
 
-def positions_mode(driver, kinematics):
-	pos1 = (110,  0, 20)
-	pos2 = (320,  0, 20)
+def positions_mode(driver, kinematics, positions):
+	angles = []
+	sensors = []
 
 	for i, pos in enumerate([pos1, pos2], 1):
 		posAngles = tuple(kinematics.anglesFromCoordinates(pos).tolist())
@@ -97,6 +97,10 @@ def main():
 	parser = argparse.ArgumentParser(description='open-dobot accelerometer calibration tool')
 	parser.add_argument('mode', choices=['continuous', 'positions'], nargs='?', default='continuous',
 						help='Calibration mode (default: continuous)')
+	parser.add_argument('--pos1', type=float, nargs=3, default=(110, 0, 20),
+						metavar=('X', 'Y', 'Z'), help='First position for calibration (default: 110 0 20)')
+	parser.add_argument('--pos2', type=float, nargs=3, default=(320, 0, 20),
+						metavar=('X', 'Y', 'Z'), help='Second position for calibration (default: 320 0 20)')
 	args = parser.parse_args()
 
 	if sys.platform.startswith("win"):
@@ -123,7 +127,7 @@ def main():
 	kinematics = DobotKinematics(endEffectorOffset=(49., 64.))
 
 	if args.mode == 'positions':
-		positions_mode(driver, kinematics)
+		positions_mode(driver, kinematics, (args.pos1, args.pos2))
 	elif args.mode == 'continuous':
 		continuous_mode(driver, kinematics)
 
