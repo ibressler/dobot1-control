@@ -31,7 +31,7 @@ import numpy as np
 
 from dobot.DobotDriver import DobotDriver
 from dobot.DobotKinematics import DobotKinematics
-from dobot.DobotBase import DobotBase, BASE, REAR, FRONT, JOINT_NAME
+from dobot.DobotBase import DobotBase, BASE, REAR, FRONT, arrayToStr
 
 piTwo = 2. * np.pi
 
@@ -67,25 +67,6 @@ frontArmActualStepsPerRevolution = (
 
 ACCEL, FLAT, DECEL = range(3)
 
-
-def valueToStr(v):
-    if isinstance(v, (float, np.floating)):
-        s = f"{v: 7.4f}"
-    elif isinstance(v, (bool, np.bool_)):
-        s = f"{str(v):>7s}"
-    elif isinstance(v, (int, np.integer)):  # int?
-        s = f"{v:>7d}"
-    else:
-        s = f"{v:>7s}"  # string?
-    return s
-
-def arrayToStr(arr):
-    if arr is None:
-        return "None"
-    try:
-        return f"({",".join([valueToStr(v) for v in arr])})"
-    except TypeError:
-        return valueToStr(arr)
 
 def arraysToStr(*args):
     return [arrayToStr(arr) for arr in args]

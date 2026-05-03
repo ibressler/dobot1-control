@@ -9,8 +9,31 @@ Additional Authors: <put your name here>
 License: MIT
 """
 
+import numpy as np
+
+
 BASE, REAR, FRONT = range(3)
 JOINT_NAME = ['base', 'rear', 'front']
+
+
+def valueToStr(v):
+    if isinstance(v, (float, np.floating)):
+        s = f"{v: 7.4f}"
+    elif isinstance(v, (bool, np.bool_)):
+        s = f"{str(v):>7s}"
+    elif isinstance(v, (int, np.integer)):  # int?
+        s = f"{v:>7d}"
+    else:
+        s = f"{v:>7s}"  # string?
+    return s
+
+def arrayToStr(arr):
+    if arr is None:
+        return "None"
+    try:
+        return f"({",".join([valueToStr(v) for v in arr])})"
+    except TypeError:
+        return valueToStr(arr)
 
 class DobotBase:
     def class_name(self):
