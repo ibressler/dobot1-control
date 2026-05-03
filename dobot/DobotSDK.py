@@ -31,7 +31,7 @@ import numpy as np
 
 from dobot.DobotDriver import DobotDriver
 from dobot.DobotKinematics import DobotKinematics
-from dobot.DobotBase import DobotBase
+from dobot.DobotBase import DobotBase, BASE, REAR, FRONT, JOINT_NAME
 
 piTwo = 2. * np.pi
 
@@ -65,9 +65,7 @@ frontArmActualStepsPerRevolution = (
     stepperMotorStepsPerRevolution * frontArmMicrosteppingMultiplier * stepperPlanetaryGearBoxMultiplier
 )
 
-BASE, REAR, FRONT = range(3)
 ACCEL, FLAT, DECEL = range(3)
-JOINT_NAME = ['base', 'rear', 'front']
 
 
 def valueToStr(v):

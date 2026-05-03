@@ -19,7 +19,7 @@ import time
 from serial import SerialException
 import math
 import sys
-from dobot.DobotBase import DobotBase
+from dobot.DobotBase import DobotBase, BASE, REAR, FRONT, JOINT_NAME
 
 # Workaround to support Python 2/3
 if sys.version_info > (3,):
@@ -40,8 +40,6 @@ CMD_LASER_ON = 9
 CMD_PUMP_ON = 10
 CMD_VALVE_ON = 11
 CMD_BOARD_VERSION = 12
-
-halfPi = math.pi / 2.0
 
 
 class DobotDriver(DobotBase):

@@ -9,6 +9,9 @@ Additional Authors: <put your name here>
 License: MIT
 """
 
+BASE, REAR, FRONT = range(3)
+JOINT_NAME = ['base', 'rear', 'front']
+
 class DobotBase:
     def class_name(self):
         return type(self).__name__
