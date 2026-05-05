@@ -9,7 +9,7 @@ This is a further development of the [DobotSDK package](https://github.com/maxos
 
 The arm should move through a series of points with the highest possible speed allowed by the given maximum velocity and acceleration, full stops on direction changes only. For a circular path like the one below, it should try to maintain a continuous motion.
 
-<img src="docs/img/circle-run_positions.png" alt="Circle positions" style="max-width: 30%; height: auto;">
+<img src="docs/img/circle-run_positions.png" alt="Circle positions" width="30%">
 
 This is what the actual motion looks like now, with the actual speed of each joint over time (steps taken per interval of 50 ms):
 
