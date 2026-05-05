@@ -36,11 +36,26 @@ python3 calibrate-accelerometers.py [mode] [options]
 - `continuous` (default): Continuously reports accelerometer data and calculated angles.
 - `positions`: Calculates sensor offsets and conversion factors based on two measured positions.
 
-### Options
+### Positions Mode Options
 
 - `--pos1 X Y Z`: First position for calibration (default: `120 0 0`).
 - `--pos2 X Y Z`: Second position for calibration (default: `320 0 0`).
 - `--offset H V`: End effector offset: horizontal and vertical distance of the mounted tool from joint 3 (default: `51 15`).
+
+
+Follow the procedure below to enable the accelerometer reporting mode on FPGA. No action is required on the RAMPS as GY-521 accelerometers can be read at any time there.
+
+1. Turn off power on the arm and disconnect USB cable
+2. Connect USB cable
+3. Enable the accelerometer reporting mode:
+   1. Press and hold the "Sensor Calibration" button on the FPGA version or ground pin D23 on AUX-4 on the RAMPS version
+   2. Press and release the "Reset" button
+   3. Start this tool (still holding the "Sensor Calibration" button on the FPGA version or keeping pin D23 grounded on the RAMPS)
+   4. Once the constructor ran (or the accelerometer data starts flowing on your console in *continuous* mode),
+   5. Release the "Sensor Calibration" button
+4. Move the arm around to the positions prompted by the tool.
+5. Finally, note the accelerometer offsets and conversion factor values reported on the console. Those are your accelerometers' offsets to be supplied to the *Dobot()* constructor.
+6. Disconnect USB cable again to reinit with the new values.
 
 ## Testing
 
