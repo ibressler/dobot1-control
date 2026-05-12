@@ -1,9 +1,8 @@
 # Dobot v1 Control
 
-Control a Dobot v1 arm (2016 model) with Python, based on the work (and alternate firmware) of
-[maxosprojects](https://github.com/maxosprojects/open-dobot).
+Control a Dobot v1 arm (2016 model) with Python, based on the work (and requires the firmware) of [open-dobot by maxosprojects](https://github.com/maxosprojects/open-dobot). Now including motion planning, limits and flexible accelerometers support, tested with SCA1000 additionally. 
 
-This is a further development of the [DobotSDK package](https://github.com/maxosprojects/open-dobot/tree/master/application/python/dobot), adding:
+This is a further development of the [DobotSDK package](https://github.com/maxosprojects/open-dobot/tree/master/application/python/dobot). Tested and developed with the original FPGA hardware and the [open-dobot firmware](https://github.com/maxosprojects/open-dobot/tree/master/firmware).
 
 ## Motion planning
 
