@@ -109,29 +109,3 @@ class DobotKinematics(DobotBase):
             self._debug("ik front angle", frontAngle)
 
         return np.array((baseAngle, rearAngle, frontAngle), dtype=float)
-
-    # angles passed as arguments here should be real world angles (horizontal = 0, below is negative, above is positive)
-    # i.e., they should be set up the same way as the unit circle is
-    def check_for_angle_limits_is_valid(self, baseAngle, rearArmAngle, foreArmAngle):
-        ret = True
-        # implementing limit switches and IMUs will make this function more accurate and allow the user to calibrate the limits
-        # necessary for this function.
-        # Not currently checking the base angle
-
-        # check the rearArmAngle
-        # max empirically determined to be around 107 - 108 degrees. Using 105.
-        # min empirically determined to be around -23/24 degrees. Using -20.
-        if -20 > rearArmAngle > 105:
-            print("Rear arm angle out of range")
-            ret = False
-
-        # check the foreArmAngle
-        # the valid forearm angle is dependent on the rear arm angle. The real-world angle of the forearm
-        # (0 degrees = horizontal) needs to be evaluated.
-        # min empirically determined to be around -105 degrees. Using -102.
-        # max empirically determined to be around 21 degrees. Using 18.
-        if -102 > foreArmAngle > 18:
-            print("Fore arm angle out of range")
-            ret = False
-
-        return ret

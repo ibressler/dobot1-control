@@ -338,7 +338,7 @@ class SegmentParams:
 class Dobot(DobotBase):
     def __init__(self, port, rate=115200, timeout=0.025, debug=False, plot=False, fake=False,
                  jointMaxVelDeg=None, jointMaxAccelDeg=None, endEffectorOffset=None, accelOffset=None,
-                 accelConversion=None, baseLimitDeg=None, rearLimitDeg=None, frontLimitDeg=None):
+                 accelConversion=None):
         """
         Initializes the Dobot control class with parameters for serial communication, debugging,
         plotting options, and maximum joint accelerations. Also initializes internal configurations
@@ -370,15 +370,6 @@ class Dobot(DobotBase):
         :param accelConversion: Conversion factor for accelerometer readings.
             Defaults to 493.56 from the original code.
         :type accelConversion: float, optional
-        :param baseLimitDeg: Angular limits (min, max) for the base joint in degrees.
-            Defaults to (-90.0, 90.0).
-        :type baseLimitDeg: tuple[float, float], optional
-        :param rearLimitDeg: Angular limits (min, max) for the rear joint in degrees.
-            Defaults to (0.0, 105.0).
-        :type rearLimitDeg: tuple[float, float], optional
-        :param frontLimitDeg: Angular limits (min, max) for the front joint in degrees.
-            Defaults to (-102.0, 18.0).
-        :type frontLimitDeg: tuple[float, float], optional
         """
         self._debugOn = debug
         self._fake = fake
@@ -407,17 +398,6 @@ class Dobot(DobotBase):
             jointMaxAccelDeg = (90.0, 90.0, 90.0)  # fallback deg/sec-squared
         self._jointMaxAccelDeg = np.clip(np.array(jointMaxAccelDeg, dtype=float), 1e-2, 360.)
         print_arr(f"Maximum joint accel. in degrees/sec²: ", self._jointMaxAccelDeg)
-        # Per-joint angular limits in degrees, defaults for Dobot with SCA1000 accelerometers
-        if baseLimitDeg is None:
-            baseLimitDeg = (-90.0, 90.0)
-        if rearLimitDeg is None:
-            rearLimitDeg = (-15., 90.0)
-        if frontLimitDeg is None:
-            frontLimitDeg = (-23., 83.)
-        self._limitsRad = np.deg2rad(np.array((baseLimitDeg, rearLimitDeg, frontLimitDeg)))
-        print_arr(f"Base  joint angular limits in degrees:", np.rad2deg(self._limitsRad[BASE]))
-        print_arr(f"Rear  joint angular limits in degrees:", np.rad2deg(self._limitsRad[REAR]))
-        print_arr(f"Front joint angular limits in degrees:", np.rad2deg(self._limitsRad[FRONT]))
         # Last directions to compensate for backlash.
         self._lastBaseDirection = 0
         self._lastRearDirection = 0
@@ -538,7 +518,6 @@ class Dobot(DobotBase):
             rearArmActualStepsPerRevolution,
             frontArmActualStepsPerRevolution
         ])
-        angles = np.clip(angles, self._limitsRad[:,0], self._limitsRad[:,1])
         stepLocations = angles * multipliers / piTwo
         diffs = stepLocations - currSteps
         # rear and front are absolute in the original code
@@ -664,8 +643,6 @@ class Dobot(DobotBase):
         joint_points = []
         for p in points:
             angles = self._kinematics.anglesFromCoordinates(p, debug=debug)
-            # clip way points to stay within allowed ranges
-            angles = np.clip(angles, self._limitsRad[:,0], self._limitsRad[:,1])
             joint_points.append(angles)
 
         if debug:
