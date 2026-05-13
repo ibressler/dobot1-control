@@ -1,0 +1,61 @@
+name: Docs
+
+# Controls when the action will run.
+on:
+  workflow_call:
+
+jobs:
+  docs:
+    # defining this job separately allows to refer to it later as job.needs dependency
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checking out the repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setting up Python 
+        uses: actions/setup-python@v6
+        with:
+          python-version: ''
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+
+      - name: Install required system packages
+        shell: sh
+        run: |
+          PLATFORM="$(echo "$RUNNER_OS" | tr '[:upper:]' '[:lower:]')"
+          REQFN="ci/requirements_$PLATFORM.txt"
+          if [ "$PLATFORM" = "linux" ] && [ -f "$REQFN" ]; then
+            sudo apt-get update  # update package DB, to avoid outdated lists
+            sudo apt-get -y install $(sed -e '/^\s*#/d' "$REQFN")
+          elif [ "$PLATFORM" = "windows" ] && [ -f "$REQFN" ]; then
+            choco install $(sed -e '/^\s*#/d' "$REQFN")
+          else
+            echo "macro sys_install_req(): platform '$PLATFORM' not implemented yet."
+          fi
+
+      - name: Install dependencies
+        shell: sh
+        run: |
+          [ -d "/c/miniconda" ] && /c/miniconda/condabin/activate.bat
+          python -m pip install --upgrade pip
+          python -m pip install --progress-bar=off .[ci]
+
+      - name: Generate documentation
+        shell: sh
+        run: tox -e docs -v
+
+      - name: Upload docs for finalization later
+        uses: actions/upload-artifact@v5
+        with:
+          name: docs
+          path: dist/docs
+
+      # - name: Upload generated documentation
+      #   uses: peaceiris/actions-gh-pages@v3
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     publish_dir: ./dist/docs

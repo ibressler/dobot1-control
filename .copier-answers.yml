@@ -1,0 +1,22 @@
+# Changes here will be overwritten by Copier
+_commit: v1.1.15-4-g60d5cc1
+_src_path: ~/code/bam/yapy-copier-template
+author_count: 1
+author_emails: dev@ingobressler.net
+author_names: Ingo Breßler
+author_websites: https://github.com/ibressler
+copyright_from: 2026
+docs_url: https://ibressler.github.io/dobot1-control
+license: MIT
+project_description: Control a Dobot v1 arm (2016) with motion planning in Python.
+    Based on open-dobot by maxosprojects.
+project_name: Dobot1-Control
+pypi_host: test.pypi.org
+python_versions: []
+release_date_question: today
+repo_hosting_domain: github.com
+repo_main_branch: main
+repo_name: dobot1-control
+repo_userorg: ibressler
+sphinx_theme: furo
+version: 1.5.0

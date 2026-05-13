@@ -19,7 +19,7 @@ import time
 from serial import SerialException
 import math
 import sys
-from dobot.DobotBase import DobotBase, BASE, REAR, FRONT, JOINT_NAME
+from dobot1_control.DobotBase import DobotBase, BASE, REAR, FRONT, JOINT_NAME
 
 # Workaround to support Python 2/3
 if sys.version_info > (3,):
@@ -43,7 +43,7 @@ CMD_BOARD_VERSION = 12
 
 
 class DobotDriver(DobotBase):
-    # See calibrate-accelerometers.py for details
+    # See calibrate_accelerometers.py for details
     accelOffsetDefault = (1024, 1024)  # FIXME: move to configurable DobotConfig obj?
     accelConversionDefault = 493.56
 

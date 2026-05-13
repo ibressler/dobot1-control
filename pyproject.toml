@@ -21,7 +21,7 @@ classifiers = [
   "Intended Audience :: Science/Research",
 ]
 dependencies = [
-    "pyserial"
+    "pyserial", "numpy"
 ]
 [project.optional-dependencies]
 tests = [
@@ -47,10 +47,6 @@ ci = [
 ]
 
 [[project.authors]]
-name = "maxosprojects"
-email = ""
-
-[[project.authors]]
 name = "Ingo Breßler"
 email = "dev@ingobressler.net"
 
@@ -59,6 +55,9 @@ homepage = "https://ibressler.github.io/dobot1-control"
 documentation = "https://ibressler.github.io/dobot1-control"
 repository = "https://github.com/ibressler/dobot1-control"
 changelog = "https://ibressler.github.io/dobot1-control/changelog.html"
+
+[project.scripts]
+dobot1-calibrate-accelerometers = "dobot1_control.calibrate_accelerometers:main"
 
 [build-system]
 requires = [
@@ -126,6 +125,32 @@ recursive = true
 wrap-summaries = 100
 wrap-descriptions = 100
 
-[tool.pytest.ini_options]
-pythonpath = ["."]
-testpaths = ["tests"]
+[pytest]
+# If a pytest section is found in one of the possible config files
+# (pytest.ini, tox.ini or setup.cfg), then pytest will not look for any others,
+# so if you add a pytest config section elsewhere,
+# you will need to delete this section from setup.cfg.
+norecursedirs = ["migrations"]
+minversion = "9.0"
+python_files = ["*.py", "test_*.py", "*_test.py", "tests.py"]
+addopts = ["-ra", "--strict-markers", "--doctest-modules", "--doctest-glob=*.rst", "--tb=short", "--ignore-glob=*/.ipynb_checkpoints"]
+testpaths = ["src", "tests", "notebooks"]
+# Idea from: https://til.simonwillison.net/pytest/treat-warnings-as-errors
+filterwarnings = [
+    "ignore::DeprecationWarning:distutils|notebook|_pytest|xarray|nbclient|pytest_notebook|debugpy",
+    "ignore::DeprecationWarning:pkg_resources|openpyxl|zmq",
+    # ignore warnings about unknown pytest-notebook options below
+    "ignore::Warning:_pytest",
+]
+nb_test_files = true
+nb_coverage = false
+nb_post_processors = ["coalesce_streams"]
+nb_diff_ignore = [
+    "/metadata/language_info",
+    "/cells/*/execution_count",
+    "/cells/*/outputs/*/execution_count",
+    "/cells/*/outputs/*/data/image/png",
+]
+nb_diff_replace = [
+  ["/cells/*/outputs/*/text", "\\", "/"]
+]

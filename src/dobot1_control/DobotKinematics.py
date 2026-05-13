@@ -17,7 +17,7 @@ import math
 
 import numpy as np
 
-from dobot.DobotBase import DobotBase
+from dobot1_control.DobotBase import DobotBase
 
 # Dimensions in mm
 lengthRearArm = 135.0

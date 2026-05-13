@@ -29,9 +29,9 @@ import sys
 import math
 import numpy as np
 
-from dobot.DobotDriver import DobotDriver
-from dobot.DobotKinematics import DobotKinematics
-from dobot.DobotBase import DobotBase, BASE, REAR, FRONT, arrayToStr
+from dobot1_control.DobotDriver import DobotDriver
+from dobot1_control.DobotKinematics import DobotKinematics
+from dobot1_control.DobotBase import DobotBase, BASE, REAR, FRONT, arrayToStr
 
 piTwo = 2. * np.pi
 
@@ -335,7 +335,7 @@ class SegmentParams:
             if kwargs.get("debug", False):
                 print_arr("v_start", self.v_start)
 
-class Dobot(DobotBase):
+class DobotControl(DobotBase):
     def __init__(self, port, rate=115200, timeout=0.025, debug=False, plot=False, fake=False,
                  jointMaxVelDeg=None, jointMaxAccelDeg=None, endEffectorOffset=None, accelOffset=None,
                  accelConversion=None):

@@ -1,0 +1,51 @@
+name: CI-CD
+
+# Controls when the action will run.
+on:
+  push:
+  pull_request:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  # check if everything works first
+  tests:
+    uses: ./.github/workflows/tests.yml
+
+  # make a new version next, release or prerelease
+  release:
+    needs: [tests]
+    uses: ./.github/workflows/release.yml
+
+  build:
+    needs: [release, tests]  # build only if all tests are successful
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+
+  docs:
+    needs: [release]  # get (release) version number first
+    uses: ./.github/workflows/docs.yml
+
+  coverage:
+    needs: [tests, docs]  # coverage report is added to the docs webpage
+    uses: ./.github/workflows/coverage.yml
+
+  publish:  # needs to be in the top-level .yml for Trusted Publishing to work @pypi
+    needs: [build,docs,coverage]
+    runs-on: 'ubuntu-latest'
+    permissions:
+      id-token: write
+    steps:
+
+      - name: Download package artifacts
+        uses: actions/download-artifact@v6
+        with:
+          pattern: packages-*
+          merge-multiple: true
+          path: dist
+
+      - name: Publish package distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          verbose: true

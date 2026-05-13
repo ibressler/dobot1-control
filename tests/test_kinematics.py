@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from dobot.DobotKinematics import DobotKinematics
+from dobot1_control.DobotKinematics import DobotKinematics
 
 class TestDobotKinematics(unittest.TestCase):
     def setUp(self):
@@ -24,13 +24,13 @@ class TestDobotKinematics(unittest.TestCase):
             with self.subTest(angles=angles):
                 # Forward kinematics: angles -> coordinates
                 coords = self.kinematics.coordinatesFromAngles(*angles)
-                
+
                 # Inverse kinematics: coordinates -> angles
                 calculated_angles = self.kinematics.anglesFromCoordinates(coords)
-                
+
                 # Check if calculated angles match original angles
                 np.testing.assert_allclose(
-                    calculated_angles, 
+                    calculated_angles,
                     angles,
                     atol=1e-7,
                     err_msg=f"Angles mismatch for input {angles}"
@@ -39,8 +39,8 @@ class TestDobotKinematics(unittest.TestCase):
                 # Round trip: coordinates -> angles -> coordinates
                 calculated_coords = self.kinematics.coordinatesFromAngles(*calculated_angles)
                 np.testing.assert_allclose(
-                    calculated_coords, 
-                    coords, 
+                    calculated_coords,
+                    coords,
                     atol=1e-7,
                     err_msg=f"Coordinates mismatch for input {angles}"
                 )

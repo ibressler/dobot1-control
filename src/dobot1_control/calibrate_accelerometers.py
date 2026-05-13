@@ -23,7 +23,7 @@ No action is required on the RAMPS as GY-521 accelerometers can be read at any t
 5. Gently push down the accelerometers so that they are on the surface evenly. Don't touch any contacts/leads.
 	You can push them one by one, not necessary to push both at the same time
 6. Note the "Raw" data from accelerometers reported on the console. Those are your accelerometers' offsets
-7. Turn off power on the arm, disconnect USB cable, mount accelerometers back onto the arm 
+7. Turn off power on the arm, disconnect USB cable, mount accelerometers back onto the arm
 
 Author: maxosprojects (March 18, 2016)
 Additional Authors: Ingo Breßler (April 11, 2026), <put your name here>
@@ -40,9 +40,9 @@ import sys
 
 import numpy as np
 
-from dobot import DobotDriver
-from dobot import DobotKinematics
-from dobot.DobotBase import REAR, FRONT, arrayToStr
+from dobot1_control import DobotDriver
+from dobot1_control import DobotKinematics
+from dobot1_control.DobotBase import REAR, FRONT, arrayToStr
 
 
 positionDefaults = {

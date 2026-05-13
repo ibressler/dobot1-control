@@ -53,12 +53,12 @@ Dobot("/dev/ttyACM0",
 
 ### Accelerometer Calibration
 
-The `calibrate-accelerometers.py` tool helps in finding offsets and conversion factors for the installed accelerometers.
+The `scripts/calibrate-accelerometers.py` tool helps in finding offsets and conversion factors for the installed accelerometers. Once the package was installed, the tool can be run as follows:
 
 #### Usage
 
 ```bash
-python3 calibrate-accelerometers.py [mode] [options]
+dobot-calibrate-accelerometers [mode] [options]
 ```
 
 #### Modes
