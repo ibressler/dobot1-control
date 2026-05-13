@@ -6,11 +6,8 @@ Contents
    :maxdepth: 2
 
    readme
-   installation
-   usage
    reference/index
    contributing
-   authors
    changelog
    View on GitHub <https://github.com/ibressler/dobot1-control>
 

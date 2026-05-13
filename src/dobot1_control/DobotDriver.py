@@ -5,12 +5,9 @@ Implements driver to open firmware that controls Dobot FPGA.
 Abstracts communication protocol, CCITT CRC, and commands sent to FPGA.
 Find firmware and SDK at https://github.com/maxosprojects/open-dobot
 
-Author: maxosprojects (March 18, 2016)
-Additional Authors: Ingo Breßler (April 12, 2026), <put your name here>
-
-Version: 1.2.2
-
-License: MIT
+:author: maxosprojects, March 18, 2016
+:author: Ingo Breßler, May 13, 2026
+:license: MIT
 """
 
 import math

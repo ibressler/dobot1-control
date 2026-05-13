@@ -17,12 +17,9 @@ Refer to docs/images/ to find more about reference frame, arm names, and more.
 SDK keeps track of the current end effector pose, thus in case the arm slips or motors are disabled while
 in move (with the "Laser Adjustment" button), it has to be re-initialized and SDK re-initialized.
 
-Author: maxosprojects (March 18, 2016)
-Additional Authors: Ingo Breßler (April 12, 2026), <put your name here>
-
-Version: 1.2.2
-
-License: MIT
+:author: maxosprojects, March 18, 2016
+:author: Ingo Breßler, May 13, 2026
+:license: MIT
 """
 
 import math

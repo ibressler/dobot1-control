@@ -3,10 +3,8 @@ Base class for Dobot control.
 
 Provides common debugging and utility functions.
 
-Author: Ingo Breßler (April 12, 2026)
-Additional Authors: <put your name here>
-
-License: MIT
+:author: Ingo Breßler, May 13, 2026
+:license: MIT
 """
 
 import numpy as np

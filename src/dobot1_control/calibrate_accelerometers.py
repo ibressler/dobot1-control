@@ -36,7 +36,6 @@ there.
 
 :author: maxosprojects, March 18, 2016
 :author: Ingo Breßler, April 11, 2026
-:version: 1.3.0
 :license: MIT
 """
 
