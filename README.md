@@ -63,3 +63,9 @@ This project uses `pytest` for testing. To run the tests, install the dependenci
 ```bash
 pytest
 ```
+
+## Copyright
+
+* Copyright © 2016 maxosprojects (original).  
+* Copyright © 2026 Ingo Breßler (fork).  
+* Licensed under the MIT License — see LICENSE.
