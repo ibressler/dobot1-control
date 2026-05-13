@@ -1,2 +1,1 @@
-readme.rst:3: [broken] https://github.com/ibressler/dobot1-control/compare/v1.5.0...main: 404 Client Error: Not Found for url: https://github.com/ibressler/dobot1-control/compare/v1.5.0...main
-readme.rst:26: [broken] https://ibressler.github.io/dobot1-control: 404 Client Error: Not Found for url: https://ingobressler.net/dobot1-control
+readme.rst:26: [redirected permanently] https://ibressler.github.io/dobot1-control to https://ingobressler.net/dobot1-control/
