@@ -1,0 +1,19 @@
+dobot1\_control.DobotKinematics
+===============================
+
+.. automodule:: dobot1_control.DobotKinematics
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

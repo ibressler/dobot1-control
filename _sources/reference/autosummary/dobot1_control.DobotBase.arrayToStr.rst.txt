@@ -1,0 +1,6 @@
+dobot1\_control.DobotBase.arrayToStr
+====================================
+
+.. currentmodule:: dobot1_control.DobotBase
+
+.. autofunction:: arrayToStr

@@ -1,0 +1,6 @@
+dobot1\_control.DobotBase.valueToStr
+====================================
+
+.. currentmodule:: dobot1_control.DobotBase
+
+.. autofunction:: valueToStr

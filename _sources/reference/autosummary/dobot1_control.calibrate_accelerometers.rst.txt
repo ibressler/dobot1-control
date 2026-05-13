@@ -1,0 +1,30 @@
+dobot1\_control.calibrate\_accelerometers
+=========================================
+
+.. automodule:: dobot1_control.calibrate_accelerometers
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+   
+      continuous_mode
+      display_accelerometer_data
+      main
+      positions_mode
+      toEndEffectorHeight
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

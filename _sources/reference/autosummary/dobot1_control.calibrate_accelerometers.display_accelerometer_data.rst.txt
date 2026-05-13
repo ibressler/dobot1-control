@@ -1,0 +1,6 @@
+dobot1\_control.calibrate\_accelerometers.display\_accelerometer\_data
+======================================================================
+
+.. currentmodule:: dobot1_control.calibrate_accelerometers
+
+.. autofunction:: display_accelerometer_data

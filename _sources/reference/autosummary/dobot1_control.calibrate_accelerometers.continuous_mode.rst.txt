@@ -1,0 +1,6 @@
+dobot1\_control.calibrate\_accelerometers.continuous\_mode
+==========================================================
+
+.. currentmodule:: dobot1_control.calibrate_accelerometers
+
+.. autofunction:: continuous_mode

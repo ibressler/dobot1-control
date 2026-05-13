@@ -1,0 +1,26 @@
+dobot1\_control.DobotBase.DobotBase
+===================================
+
+.. currentmodule:: dobot1_control.DobotBase
+
+.. autoclass:: DobotBase
+   :members:
+   :show-inheritance:
+   :inherited-members:
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~DobotBase.__init__
+      ~DobotBase.class_name
+   
+   
+
+   
+   
+   

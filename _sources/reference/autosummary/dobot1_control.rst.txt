@@ -1,0 +1,32 @@
+﻿dobot1\_control
+===============
+
+.. automodule:: dobot1_control
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :template: module.rst
+   :recursive:
+
+   DobotBase
+   DobotControl
+   DobotDriver
+   DobotKinematics
+   calibrate_accelerometers
+
