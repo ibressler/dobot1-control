@@ -42,7 +42,7 @@ project = "Dobot1-Control"
 year = "2026"
 author = "Ingo Breßler"
 copyright = "{0}, {1}".format(year, author)
-version = "1.5.0"
+version = "1.4.0"
 release = version
 commit_id = None
 try:

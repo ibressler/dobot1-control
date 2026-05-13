@@ -1,7 +1,7 @@
-# Dobot1-Control (v1.5.0)
+# Dobot1-Control (v1.4.0)
 
 [![PyPI Package latest release](https://img.shields.io/pypi/v/dobot1-control.svg)](https://test.pypi.org/project/dobot1-control)
-[![Commits since latest release](https://img.shields.io/github/commits-since/ibressler/dobot1-control/v1.5.0.svg)](https://github.com/ibressler/dobot1-control/compare/v1.5.0...main)
+[![Commits since latest release](https://img.shields.io/github/commits-since/ibressler/dobot1-control/v1.4.0.svg)](https://github.com/ibressler/dobot1-control/compare/v1.4.0...main)
 [![License](https://img.shields.io/pypi/l/dobot1-control.svg)](https://en.wikipedia.org/wiki/MIT_license)
 [![Supported versions](https://img.shields.io/pypi/pyversions/dobot1-control.svg)](https://test.pypi.org/project/dobot1-control)
 [![PyPI Wheel](https://img.shields.io/pypi/wheel/dobot1-control.svg)](https://test.pypi.org/project/dobot1-control#files)
