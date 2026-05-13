@@ -1,11 +1,11 @@
 # Dobot1-Control (v1.4.0)
 
-[![PyPI Package latest release](https://img.shields.io/pypi/v/dobot1-control.svg)](https://test.pypi.org/project/dobot1-control)
+[![PyPI Package latest release](https://img.shields.io/pypi/v/dobot1-control.svg)](https://pypi.org/project/dobot1-control)
 [![Commits since latest release](https://img.shields.io/github/commits-since/ibressler/dobot1-control/v1.4.0.svg)](https://github.com/ibressler/dobot1-control/compare/v1.4.0...main)
 [![License](https://img.shields.io/pypi/l/dobot1-control.svg)](https://en.wikipedia.org/wiki/MIT_license)
-[![Supported versions](https://img.shields.io/pypi/pyversions/dobot1-control.svg)](https://test.pypi.org/project/dobot1-control)
-[![PyPI Wheel](https://img.shields.io/pypi/wheel/dobot1-control.svg)](https://test.pypi.org/project/dobot1-control#files)
-[![Weekly PyPI downloads](https://img.shields.io/pypi/dw/dobot1-control.svg)](https://test.pypi.org/project/dobot1-control/)
+[![Supported versions](https://img.shields.io/pypi/pyversions/dobot1-control.svg)](https://pypi.org/project/dobot1-control)
+[![PyPI Wheel](https://img.shields.io/pypi/wheel/dobot1-control.svg)](https://pypi.org/project/dobot1-control#files)
+[![Weekly PyPI downloads](https://img.shields.io/pypi/dw/dobot1-control.svg)](https://pypi.org/project/dobot1-control/)
 [![Continuous Integration and Deployment Status](https://github.com/ibressler/dobot1-control/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/ibressler/dobot1-control/actions/workflows/ci-cd.yml)
 [![Coverage report](https://img.shields.io/endpoint?url=https://ibressler.github.io/dobot1-control/coverage-report/cov.json)](https://ibressler.github.io/dobot1-control/coverage-report/)
 

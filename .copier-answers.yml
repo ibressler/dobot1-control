@@ -11,7 +11,7 @@ license: MIT
 project_description: Control a Dobot v1 arm (2016) with motion planning in Python.
     Based on open-dobot by maxosprojects.
 project_name: Dobot1-Control
-pypi_host: test.pypi.org
+pypi_host: pypi.org
 python_versions:
 - '3.14'
 release_date_question: today
