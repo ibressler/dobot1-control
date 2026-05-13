@@ -1,3 +1,101 @@
+[project]
+name = "dobot1-control"
+description = "Control a Dobot v1 arm (2016) with motion planning in Python. Based on open-dobot by maxosprojects."
+dynamic = ["version", "readme"]
+license = "MIT"
+classifiers = [
+  # complete classifier list: http://pypi.python.org/pypi?%3Aaction=list_classifiers
+  "Development Status :: 4 - Beta",
+  "Operating System :: Unix",
+  "Operating System :: POSIX",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Framework :: Jupyter :: JupyterLab",
+  "Topic :: Utilities",
+  "Topic :: Scientific/Engineering",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+]
+dependencies = [
+    "pyserial"
+]
+[project.optional-dependencies]
+tests = [
+    "tox",
+    "pytest",
+    "pytest-cov",
+]
+docs = [
+    "sphinx>=6.2",
+    "myst-parser>=2.0",
+    "furo",
+    "linkify-it-py",
+    "toml"
+]
+ci = [
+    "tox",
+    "build",
+    "toml",
+    "python-semantic-release",
+    # provides the *coverage* command to combine and publish coverage data
+    # generated within tox environments
+    "pytest-cov"
+]
+
+[[project.authors]]
+name = "maxosprojects"
+email = ""
+
+[[project.authors]]
+name = "Ingo Breßler"
+email = "dev@ingobressler.net"
+
+[project.urls]
+homepage = "https://ibressler.github.io/dobot1-control"
+documentation = "https://ibressler.github.io/dobot1-control"
+repository = "https://github.com/ibressler/dobot1-control"
+changelog = "https://ibressler.github.io/dobot1-control/changelog.html"
+
+[build-system]
+requires = [
+    "setuptools>=40.6",
+    "wheel",
+]
+# check-manifest checks that, https://github.com/mgedmin/check-manifest/commit/c9df78
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["dobot1_control*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "dobot1_control.__version__"}
+readme = {file = ["README.md", "CHANGELOG.md"], content-type = "text/markdown"}
+
+[tool.coverage.report]
+path = "coverage-report"  # see coverage.yml github action
+
+# on version numbers: https://peps.python.org/pep-0440/
+# and bottom of https://softwareengineering.stackexchange.com/a/151558
+[tool.semantic_release]
+allow_zero_version = true
+version_variables = [                        # version location
+    "src/dobot1_control/__init__.py:__version__",
+    "docs/conf.py:version",
+]
+[tool.semantic_release.commit_parser_options]
+allowed_tags = ["build", "chore", "ci", "docs", "feat", "enh", "fix", "perf", "style", "refactor", "test"]
+minor_tags = ["feat", "enh"]
+patch_tags = ["fix", "perf"]
+[tool.semantic_release.changelog]
+exclude_commit_patterns = ["chore", ".*\\bGHA\\b.*", ".*\\b[gG][hH] actions?\\b.*"]
+[tool.semantic_release.publish]
+upload_to_vcs_release = false
+
 [tool.black]
 line-length = 120
 skip-string-normalization = false
@@ -14,6 +112,19 @@ exclude = '''
   | dist
 )/
 '''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+group_by_package = true
+known_first_party = "dobot1_control"
+ensure_newline_before_comments = true
+extend_skip = [".ipynb_checkpoints"]
+
+[tool.docformatter]
+recursive = true
+wrap-summaries = 100
+wrap-descriptions = 100
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
