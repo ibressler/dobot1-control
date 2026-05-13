@@ -20,4 +20,4 @@ repo_main_branch: main
 repo_name: dobot1-control
 repo_userorg: ibressler
 sphinx_theme: furo
-version: 1.5.0
+version: 1.4.0
