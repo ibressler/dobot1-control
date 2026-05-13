@@ -24,9 +24,8 @@
    {% if attributes %}
    .. rubric:: {{ _('Attributes') }}
 
-   .. autosummary::
    {% for item in attributes %}
-      ~{{ name }}.{{ item }}
+   .. autoattribute:: {{ objname }}.{{ item }}
    {%- endfor %}
    {% endif %}
    {% endblock %}

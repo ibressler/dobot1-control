@@ -30,13 +30,13 @@ https://ibressler.github.io/dobot1-control
 
 The arm should move through a series of points with the highest possible speed allowed by the given maximum velocity and acceleration, full stops on direction changes only. For a circular path like the one below, it should try to maintain a continuous motion.
 
-<img src="docs/img/circle-run_positions.png" alt="Circle positions" width="30%">
+<img src="https://raw.githubusercontent.com/ibressler/dobot1-control/main/docs/img/circle-run_positions.png" alt="Circle positions" width="30%">
 
 This is what the actual motion looks like now, with the actual speed of each joint over time (steps taken per interval of 50 ms):
 
-![Steps plot along circle](docs/img/circle-run_actual-steps.png)
+![Steps taken along circle](https://raw.githubusercontent.com/ibressler/dobot1-control/main/docs/img/circle-run_actual-steps.png)
 
-This example can be found in the [test move.ipynb](notebooks/test_move.ipynb) notebook.
+This example can be found in the [dobot example moves.ipynb](https://raw.githubusercontent.com/ibressler/dobot1-control/main/notebooks/dobot_example_moves.ipynb) notebook.
 
 ### Free Accelerometer Conversion
 

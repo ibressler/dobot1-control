@@ -3,34 +3,41 @@
 """
 open-dobot accelerometer calibration tool.
 
-This tool continuously reports accelerometers and angles from those.
+This tool continuously reports accelerometer readings and the angles calculated
+from them.
 
 Use this tool to find offsets for your accelerometers.
 
-Follow the procedure below to enable the accelerometer reporting mode on FPGA.
-No action is required on the RAMPS as GY-521 accelerometers can be read at any time there.
-1. Turn off power on the arm and disconnect USB cable
-2. Remove accelerometers from the arm and put them on a flat surface that has no inclination
-3. Connect USB cable
-4. Enable the accelerometer reporting mode:
-   4.1. Press and hold the "Sensor Calibration" button on the FPGA version
-                or ground pin D23 on AUX-4 on the RAMPS version
-   4.2. Press and release the "Reset" button
-   4.3. Start this tool (still holding the "Sensor Calibration" button on the FPGA version
-        or keeping pin D23 grounded on the RAMPS)
-   4.4. Wait for the accelerometer data to start flowing on your console/whatever_you_use_to_start_this_tool
-   4.5. Release the "Sensor Calibration" button
-5. Gently push down the accelerometers so that they are on the surface evenly. Don't touch any contacts/leads.
-        You can push them one by one, not necessary to push both at the same time
-6. Note the "Raw" data from accelerometers reported on the console. Those are your accelerometers' offsets
-7. Turn off power on the arm, disconnect USB cable, mount accelerometers back onto the arm
+To enable accelerometer reporting mode on FPGA, follow this procedure. No action
+is required on RAMPS, because GY-521 accelerometers can be read at any time
+there.
 
-Author: maxosprojects (March 18, 2016)
-Additional Authors: Ingo Breßler (April 11, 2026), <put your name here>
+1. Turn off power on the arm and disconnect the USB cable.
+2. Remove the accelerometers from the arm and put them on a flat surface that
+   has no inclination.
+3. Connect the USB cable.
+4. Enable accelerometer reporting mode:
 
-Version: 1.3.0
+   a. Press and hold the "Sensor Calibration" button on the FPGA version, or
+      ground pin D23 on AUX-4 on the RAMPS version.
+   b. Press and release the "Reset" button.
+   c. Start this tool while still holding the "Sensor Calibration" button on
+      the FPGA version, or while keeping pin D23 grounded on the RAMPS version.
+   d. Wait for accelerometer data to start flowing in your console.
+   e. Release the "Sensor Calibration" button.
 
-License: MIT
+5. Gently push down the accelerometers so that they lie evenly on the surface.
+   Do not touch any contacts or leads. You can push them one by one; it is not
+   necessary to push both at the same time.
+6. Note the "Raw" data reported for the accelerometers. These values are your
+   accelerometer offsets.
+7. Turn off power on the arm, disconnect the USB cable, and mount the
+   accelerometers back onto the arm.
+
+:author: maxosprojects, March 18, 2016
+:author: Ingo Breßler, April 11, 2026
+:version: 1.3.0
+:license: MIT
 """
 
 import argparse
