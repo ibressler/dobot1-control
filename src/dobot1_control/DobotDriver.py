@@ -12,14 +12,17 @@ Version: 1.2.2
 
 License: MIT
 """
-import numpy as np
-import serial
-import threading
-import time
-from serial import SerialException
+
 import math
 import sys
-from dobot1_control.DobotBase import DobotBase, BASE, REAR, FRONT, JOINT_NAME
+import threading
+import time
+
+import numpy as np
+import serial
+from serial import SerialException
+
+from dobot1_control.DobotBase import FRONT, REAR, DobotBase
 
 # Workaround to support Python 2/3
 if sys.version_info > (3,):
@@ -681,7 +684,7 @@ class DobotDriver(DobotBase):
         :return: The reversed 32-bit integer.
         :rtype: int
         """
-        ### return long(bin(val&0xFFFFFFFF)[:1:-1], 2)
+        # return long(bin(val&0xFFFFFFFF)[:1:-1], 2)
         # return int('{0:032b}'.format(val)[::-1], 2)
         # Not reversing bits in bytes anymore as SPI switched to LSB first.
         # But still need to reverse bytes places.
@@ -770,7 +773,7 @@ class DobotDriver(DobotBase):
         try:
             return math.asin(float(val - offset) / self._accelConversion)
         except ValueError:
-            return np.pi*.5
+            return np.pi * 0.5
 
     def accelToRadiansAxis(self, axis: int, val: int):
         """
@@ -786,9 +789,9 @@ class DobotDriver(DobotBase):
         axis = int(axis)
         if axis not in (REAR, FRONT):
             raise ValueError(f"Invalid axis! Must be {REAR} (rear) or {FRONT} (front).")
-        result = self.accelToRadians(val, self._accelOffset[axis-1])
+        result = self.accelToRadians(val, self._accelOffset[axis - 1])
         if axis == REAR:
-            result = np.pi * .5 - result
+            result = np.pi * 0.5 - result
         return result
 
     @staticmethod
@@ -811,7 +814,7 @@ class DobotDriver(DobotBase):
             zf = float(z)
             return math.atan2(xf, math.sqrt(yf * yf + zf * zf))
         except ValueError:
-            return np.pi*.5
+            return np.pi * 0.5
 
     def CalibrateJoint(self, joint, forwardCommand, backwardCommand, direction, pin, pinMode, pullup):
         """
@@ -897,8 +900,13 @@ class DobotDriver(DobotBase):
         self._gripper = servoGrab
 
         result = self._write1444122read1(
-            CMD_STEPS, int(jointCmd[0]), int(jointCmd[1]), int(jointCmd[2]),
-            control, self.reverseBits16(servoGrab), self.reverseBits16(servoRot)
+            CMD_STEPS,
+            int(jointCmd[0]),
+            int(jointCmd[1]),
+            int(jointCmd[2]),
+            control,
+            self.reverseBits16(servoGrab),
+            self.reverseBits16(servoRot),
         )
         self._lock.release()
         return result
@@ -1109,6 +1117,7 @@ class DobotDriver(DobotBase):
 
 
 # 		self._lock.release()
+
 
 class SerialAggregator:
     """

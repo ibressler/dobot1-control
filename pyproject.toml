@@ -114,7 +114,7 @@ exclude = '''
 
 [tool.isort]
 profile = "black"
-line_length = 100
+line_length = 120
 group_by_package = true
 known_first_party = "dobot1_control"
 ensure_newline_before_comments = true

@@ -25,15 +25,16 @@ Version: 1.2.2
 License: MIT
 """
 
-import sys
 import math
+import sys
+
 import numpy as np
 
+from dobot1_control.DobotBase import BASE, FRONT, REAR, DobotBase, arrayToStr
 from dobot1_control.DobotDriver import DobotDriver
 from dobot1_control.DobotKinematics import DobotKinematics
-from dobot1_control.DobotBase import DobotBase, BASE, REAR, FRONT, arrayToStr
 
-piTwo = 2. * np.pi
+piTwo = 2.0 * np.pi
 
 # Workaround to support Python 2/3
 if sys.version_info > (3,):
@@ -71,8 +72,10 @@ ACCEL, FLAT, DECEL = range(3)
 def arraysToStr(*args):
     return [arrayToStr(arr) for arr in args]
 
+
 def print_arr(prefix, *args):
     print(f"{str(prefix):>15s}", *arraysToStr(*args))
+
 
 class DobotPlotter:
     def __init__(self):
@@ -91,15 +94,14 @@ class DobotPlotter:
     def add_slice_data(self, actual_steps):
         self._slice_actual.append(actual_steps)
 
-    def add_move_data(self, coord:np.ndarray, nextPos:np.ndarray):
+    def add_move_data(self, coord: np.ndarray, nextPos: np.ndarray):
         self._coords.append(coord)
         self._next.append(nextPos)
         self._diff.append(coord - nextPos)
 
     def show(self):
         linewidth = 1.0
-        colors = dict(x='darkred', y='darkgreen', z='lightblue',
-                      base='lightblue', rear='darkgreen', front='darkred')
+        colors = dict(x="darkred", y="darkgreen", z="lightblue", base="lightblue", rear="darkgreen", front="darkred")
 
         def get_kwargs(axis):
             return dict(color=colors[axis], linewidth=linewidth, label=axis)
@@ -114,32 +116,32 @@ class DobotPlotter:
         plt.title("Current Coords")
         if len(self._coords):
             data = np.stack(self._coords)
-            for i, axis in enumerate(['x', 'y', 'z']):
-                plt.plot(data[:,i], **get_kwargs(axis))
+            for i, axis in enumerate(["x", "y", "z"]):
+                plt.plot(data[:, i], **get_kwargs(axis))
         plt.legend()
 
         plt.subplot(3, 3, 2)
         plt.title("Next Coords")
         if len(self._next):
             data = np.stack(self._next)
-            for i, axis in enumerate(['x', 'y', 'z']):
-                plt.plot(data[:,i], **get_kwargs(axis))
+            for i, axis in enumerate(["x", "y", "z"]):
+                plt.plot(data[:, i], **get_kwargs(axis))
         plt.legend()
 
         plt.subplot(3, 3, 3)
         plt.title("Diff Coords")
         if len(self._diff):
             data = np.stack(self._diff)
-            for i, axis in enumerate(['x', 'y', 'z']):
-                plt.plot(data[:,i], **get_kwargs(axis))
+            for i, axis in enumerate(["x", "y", "z"]):
+                plt.plot(data[:, i], **get_kwargs(axis))
         plt.legend()
 
         plt.subplot(3, 1, 2)
         plt.title("Slice Data (Actual Steps)")
         if len(self._slice_actual):
             data = np.stack(self._slice_actual)
-            for i, axis in enumerate(['base', 'rear', 'front']):
-                plt.plot(data[:,i], **get_kwargs(axis))
+            for i, axis in enumerate(["base", "rear", "front"]):
+                plt.plot(data[:, i], **get_kwargs(axis))
         plt.legend()
 
         # make the y ticks integers, not floats
@@ -151,6 +153,7 @@ class DobotPlotter:
 
         plt.tight_layout()
         plt.show()
+
 
 class SegmentParams:
     start = None
@@ -167,13 +170,16 @@ class SegmentParams:
 
     def v_from(self, isforward):
         return self.v_start if isforward else self.v_end
+
     def set_v_from(self, isforward, v):
         if isforward:
             self.v_start = v
         else:
             self.v_end = v
+
     def v_to(self, isforward):
         return self.v_end if isforward else self.v_start
+
     def set_v_to(self, isforward, v):
         if isforward:
             self.v_end = v
@@ -190,9 +196,12 @@ class SegmentParams:
         self.a_max = a_max
 
     def __str__(self):
-        return "\n".join((
-            ", ".join((f"{name}: {arrayToStr(getattr(self, name))}" for name in ("start", "end", "delta"))),
-            ", ".join((f"{name}: {arrayToStr(getattr(self, name))}" for name in ("v_start", "v_end")))))
+        return "\n".join(
+            (
+                ", ".join((f"{name}: {arrayToStr(getattr(self, name))}" for name in ("start", "end", "delta"))),
+                ", ".join((f"{name}: {arrayToStr(getattr(self, name))}" for name in ("v_start", "v_end"))),
+            )
+        )
 
     @staticmethod
     def get_phase_durations(delta, v_start, v_end, v_max, a_max, debug=False):
@@ -221,41 +230,46 @@ class SegmentParams:
         phase_duration[DECEL] = np.where(v_peak > v_end, (v_peak - v_end) / a_max, 0.0)
         # Each joint drives its own phase duration, use the maximum.
         phase_duration = phase_duration.max(axis=1)
-        #return phase_duration
-        return np.ceil(phase_duration*50)/50.  # avoid rounding errors later
+        # return phase_duration
+        return np.ceil(phase_duration * 50) / 50.0  # avoid rounding errors later
 
     @staticmethod
     def calc_profile(effective_distance, v_start, v_end, phase_duration, debug=False):
         # Reconstruct the synchronized peak velocity from the total segment distance.
-        effective_duration = (
-                0.5 * phase_duration[ACCEL] + phase_duration[FLAT] + 0.5 * phase_duration[DECEL]
+        effective_duration = 0.5 * phase_duration[ACCEL] + phase_duration[FLAT] + 0.5 * phase_duration[DECEL]
+        joint_v_peak = np.maximum(
+            np.divide(
+                effective_distance,
+                effective_duration,
+                out=np.zeros_like(effective_distance),
+                where=effective_duration > 0.0,
+            ),
+            0.0,
         )
-        joint_v_peak = np.maximum(np.divide(
-            effective_distance,
-            effective_duration,
-            out=np.zeros_like(effective_distance),
-            where=effective_duration > 0.0,
-        ), 0.0)
-        joint_accel = np.maximum(np.divide(
-            joint_v_peak - v_start,
-            phase_duration[ACCEL],
-            out=np.zeros_like(joint_v_peak),
-            where=phase_duration[ACCEL] > 0.0,
-        ), 0.0)
-        joint_decel = np.maximum(np.divide(
-            joint_v_peak - v_end,
-            phase_duration[DECEL],
-            out=np.zeros_like(joint_v_peak),
-            where=phase_duration[DECEL] > 0.0,
-        ), 0.0)
+        joint_accel = np.maximum(
+            np.divide(
+                joint_v_peak - v_start,
+                phase_duration[ACCEL],
+                out=np.zeros_like(joint_v_peak),
+                where=phase_duration[ACCEL] > 0.0,
+            ),
+            0.0,
+        )
+        joint_decel = np.maximum(
+            np.divide(
+                joint_v_peak - v_end,
+                phase_duration[DECEL],
+                out=np.zeros_like(joint_v_peak),
+                where=phase_duration[DECEL] > 0.0,
+            ),
+            0.0,
+        )
         phase_distances = np.zeros((3, 3), dtype=float)
         phase_distances[ACCEL] = (
-                v_start * phase_duration[ACCEL]
-                + 0.5 * joint_accel * phase_duration[ACCEL] * phase_duration[ACCEL]
+            v_start * phase_duration[ACCEL] + 0.5 * joint_accel * phase_duration[ACCEL] * phase_duration[ACCEL]
         )
         phase_distances[DECEL] = (
-                joint_v_peak * phase_duration[DECEL]
-                + 0.5 * (-joint_decel) * phase_duration[DECEL] * phase_duration[DECEL]
+            joint_v_peak * phase_duration[DECEL] + 0.5 * (-joint_decel) * phase_duration[DECEL] * phase_duration[DECEL]
         )
         phase_distances[FLAT] = joint_v_peak * phase_duration[FLAT]
         if debug:
@@ -268,16 +282,16 @@ class SegmentParams:
     @staticmethod
     def _solve_common(delta, v_start, v_end, v_max, a_max, fix_mismatch=False, debug=False):
         phase_duration = SegmentParams.get_phase_durations(delta, v_start, v_end, v_max, a_max, debug=debug)
-        effective_distance = np.maximum(np.abs(delta) - 0.5 * (
-                v_start * phase_duration[ACCEL] + v_end * phase_duration[DECEL]
-        ), 0.0)  # must not be negative
+        effective_distance = np.maximum(
+            np.abs(delta) - 0.5 * (v_start * phase_duration[ACCEL] + v_end * phase_duration[DECEL]), 0.0
+        )  # must not be negative
         if debug:
             print_arr("phase_duration", phase_duration)
             print_arr("effective_distance", effective_distance)
 
         mismatch_orig, mismatch_new = None, None
         # helpers for calculating an exact mismatch factor
-        factors = [0., 1.]
+        factors = [0.0, 1.0]
         mismatch = []
         mismatch_largest_idx = 0
         for i in range(3):
@@ -286,11 +300,12 @@ class SegmentParams:
                 non_zero_boundary = (np.abs(v_start) > 1e-9) | (np.abs(v_end) > 1e-9)
                 needs_closure = np.logical_and(non_zero_boundary, np.logical_not(np.abs(mismatch_new) < 1e-5))
                 if np.any(needs_closure):
-                    eff_dist = np.maximum(effective_distance + factors[i]*mismatch_orig, 0.0)
+                    eff_dist = np.maximum(effective_distance + factors[i] * mismatch_orig, 0.0)
                 else:  # nothing to do, no closure needed
                     break
             joint_v_peak, joint_accel, joint_decel, phase_distances = SegmentParams.calc_profile(
-                eff_dist, v_start, v_end, phase_duration, debug=debug)
+                eff_dist, v_start, v_end, phase_duration, debug=debug
+            )
 
             # If a joint has no flat phase and non-zero boundary velocities, force exact closure
             # by letting the decel phase absorb the remaining mismatch.
@@ -312,8 +327,8 @@ class SegmentParams:
                 print_arr("rel_mismatch", (f"{joint_rel * 100.0:.2f}%" for joint_rel in rel_mismatch))
             if len(mismatch) > 1:
                 factor = 0.7  # typically between 65 % and 75% of the mismatch
-                if mismatch[0]-mismatch[1] != 0:
-                    factor = (mismatch[0])*(factors[1]-factors[0]) / (mismatch[0]-mismatch[1])
+                if mismatch[0] - mismatch[1] != 0:
+                    factor = (mismatch[0]) * (factors[1] - factors[0]) / (mismatch[0] - mismatch[1])
                 factors.append(factor)
                 if debug:
                     print(f"Applying {factors[-1]} mismatch factor.", f"({factor})" if factor > 1 else "")
@@ -323,8 +338,9 @@ class SegmentParams:
         return phase_duration, joint_v_peak, joint_accel, joint_decel, phase_distances
 
     def update(self, v_max, isforward=True, **kwargs):
-        (self.phase_duration, self.joint_v_peak, self.joint_accel, self.joint_decel, self.phase_distances
-         ) = self._solve_common(self.delta, self.v_start, self.v_end, v_max, self.a_max, **kwargs)
+        self.phase_duration, self.joint_v_peak, self.joint_accel, self.joint_decel, self.phase_distances = (
+            self._solve_common(self.delta, self.v_start, self.v_end, v_max, self.a_max, **kwargs)
+        )
         if isforward:
             self.v_end = self.joint_v_peak - self.joint_decel * self.phase_duration[DECEL]
             if kwargs.get("debug", False):
@@ -335,10 +351,22 @@ class SegmentParams:
             if kwargs.get("debug", False):
                 print_arr("v_start", self.v_start)
 
+
 class DobotControl(DobotBase):
-    def __init__(self, port, rate=115200, timeout=0.025, debug=False, plot=False, fake=False,
-                 jointMaxVelDeg=None, jointMaxAccelDeg=None, endEffectorOffset=None, accelOffset=None,
-                 accelConversion=None):
+    def __init__(
+        self,
+        port,
+        rate=115200,
+        timeout=0.025,
+        debug=False,
+        plot=False,
+        fake=False,
+        jointMaxVelDeg=None,
+        jointMaxAccelDeg=None,
+        endEffectorOffset=None,
+        accelOffset=None,
+        accelConversion=None,
+    ):
         """
         Initializes the Dobot control class with parameters for serial communication, debugging,
         plotting options, and maximum joint accelerations. Also initializes internal configurations
@@ -390,14 +418,14 @@ class DobotControl(DobotBase):
         # The MoveWithSpeed() velocity argument is interpreted as a percentage of these maxima.
         if jointMaxVelDeg is None:
             jointMaxVelDeg = (45.0, 45.0, 45.0)  # fallback deg/sec
-        self._jointMaxVelDeg = np.clip(np.array(jointMaxVelDeg, dtype=float), 1e-2, 360.)
-        print_arr(f"Maximum joint velocity in degrees/sec:", self._jointMaxVelDeg)
+        self._jointMaxVelDeg = np.clip(np.array(jointMaxVelDeg, dtype=float), 1e-2, 360.0)
+        print_arr("Maximum joint velocity in degrees/sec:", self._jointMaxVelDeg)
         # Per-joint acceleration limits in joint units per second^2.
         # The MoveWithSpeed() accel argument is interpreted as a percentage of these maxima.
         if jointMaxAccelDeg is None:
             jointMaxAccelDeg = (90.0, 90.0, 90.0)  # fallback deg/sec-squared
-        self._jointMaxAccelDeg = np.clip(np.array(jointMaxAccelDeg, dtype=float), 1e-2, 360.)
-        print_arr(f"Maximum joint accel. in degrees/sec²: ", self._jointMaxAccelDeg)
+        self._jointMaxAccelDeg = np.clip(np.array(jointMaxAccelDeg, dtype=float), 1e-2, 360.0)
+        print_arr("Maximum joint accel. in degrees/sec²: ", self._jointMaxAccelDeg)
         # Last directions to compensate for backlash.
         self._lastBaseDirection = 0
         self._lastRearDirection = 0
@@ -453,7 +481,7 @@ class DobotControl(DobotBase):
                 accelFrontZ += ret[6]
             if successes > 0:
                 divisor = float(successes)
-                rearAngle = .5*np.pi - self._driver.accel3DXToRadians(
+                rearAngle = 0.5 * np.pi - self._driver.accel3DXToRadians(
                     accelRearX / divisor, accelRearY / divisor, accelRearZ / divisor
                 )
                 frontAngle = -self._driver.accel3DXToRadians(
@@ -464,7 +492,7 @@ class DobotControl(DobotBase):
                 print("See open-dobot wiki")
                 print("Assuming rear arm vertical and front arm horizontal")
                 rearAngle = 0
-                frontAngle = -.5*np.pi
+                frontAngle = -0.5 * np.pi
         print(f"Angles read: rear= {np.rad2deg(rearAngle):.3f}°, front= {np.rad2deg(frontAngle):.3f}°")
         print("    [ expecting: rear @vertical -> 0°, front @horizontal -> 0° ]")
         self._baseSteps = long(0)
@@ -495,12 +523,10 @@ class DobotControl(DobotBase):
         :rtype: numpy.ndarray
         """
         currSteps = np.array([self._baseSteps, self._rearSteps, self._frontSteps])
-        multipliers = np.array([
-            baseActualStepsPerRevolution,
-            rearArmActualStepsPerRevolution,
-            frontArmActualStepsPerRevolution
-        ])
-        angles = 2. * np.pi * currSteps / multipliers
+        multipliers = np.array(
+            [baseActualStepsPerRevolution, rearArmActualStepsPerRevolution, frontArmActualStepsPerRevolution]
+        )
+        angles = 2.0 * np.pi * currSteps / multipliers
         return angles
 
     @property
@@ -509,15 +535,13 @@ class DobotControl(DobotBase):
 
     @staticmethod
     def fmtPos(pos: np.ndarray, prefix="pos"):
-        return prefix+": "+", ".join([f"{coord} = {pos[i]:.2f}" for i, coord in enumerate(("x", "y", "z"))])
+        return prefix + ": " + ", ".join([f"{coord} = {pos[i]:.2f}" for i, coord in enumerate(("x", "y", "z"))])
 
     def _prepareAnglesSlice(self, angles, debug=False):
         currSteps = np.array([self._baseSteps, self._rearSteps, self._frontSteps])
-        multipliers = np.array([
-            baseActualStepsPerRevolution,
-            rearArmActualStepsPerRevolution,
-            frontArmActualStepsPerRevolution
-        ])
+        multipliers = np.array(
+            [baseActualStepsPerRevolution, rearArmActualStepsPerRevolution, frontArmActualStepsPerRevolution]
+        )
         stepLocations = angles * multipliers / piTwo
         diffs = stepLocations - currSteps
         # rear and front are absolute in the original code
@@ -553,8 +577,8 @@ class DobotControl(DobotBase):
         actualSteps = np.array([resBase[1], resRear[1], resFront[1]])
         leftSteps = np.array([resBase[2], resRear[2], resFront[2]])
 
-        # Compensate for backlash.
-        # For now compensate only backlash in the base motor as the backlash in the arm motors depends on a specific task (a laser/brush or push-pull tasks).
+        # Compensate for backlash. Currently, only for the base motor as the backlash in the arm motors
+        # depends on a specific task, i.e., tool mounted (a laser/brush or push-pull tasks).
         if self._lastBaseDirection != dirs[BASE] and actualSteps[BASE] > 0:
             cmdVals[BASE], _ignore, _ignore = self._driver.stepsToCmdValFloat(diffsAbs[BASE] + backlash)
             self._lastBaseDirection = dirs[BASE]
@@ -619,9 +643,9 @@ class DobotControl(DobotBase):
             self._plotter.reset_move_plots()
 
         # translate given percentages for speed & accel to vectors in rad with indiv. values for each joint
-        vel = np.clip(vel, 1e-9, 1.)
+        vel = np.clip(vel, 1e-9, 1.0)
         v_max = np.deg2rad(self._jointMaxVelDeg) * vel
-        accel = np.clip(accel, 1e-9, 1.)
+        accel = np.clip(accel, 1e-9, 1.0)
         a_max = np.deg2rad(self._jointMaxAccelDeg) * accel
 
         if toolRotation is None:
@@ -650,13 +674,15 @@ class DobotControl(DobotBase):
             print_arr("v_max", v_max)
             print_arr("a_max", a_max)
             print_arr("world points", *points)
-            #print_arr("unwrap.bef", *joint_points)
+            # print_arr("unwrap.bef", *joint_points)
             joint_points = self._unwrap_angles(joint_points)
             print_arr("joint points", *joint_points)
 
         # create all segments first
-        segments = [SegmentParams(joint_points[i], joint_points[i+1], v_max, v_max, v_max, a_max)
-                    for i in range(len(joint_points)-1)]
+        segments = [
+            SegmentParams(joint_points[i], joint_points[i + 1], v_max, v_max, v_max, a_max)
+            for i in range(len(joint_points) - 1)
+        ]
 
         def apply_static_conditions(segments, idx):
             """
@@ -676,20 +702,26 @@ class DobotControl(DobotBase):
             To be used before the motion planning updates of each scan forward or backward.
             This makes sure the conditions are met before the next calculation.
             """
-            incr = int(isforward)*2-1
+            incr = int(isforward) * 2 - 1
             if 0 <= (idx - incr) < len(segments):
                 # continue the next segment with the speed of the previous one
-                segments[idx].set_v_from(isforward, segments[idx-incr].v_to(isforward))
+                segments[idx].set_v_from(isforward, segments[idx - incr].v_to(isforward))
             # for no position change within the segment, the velocity stays the same
-            segments[idx].set_v_to(isforward, np.where(np.abs(segments[idx].delta) < 1e-5,
-                                segments[idx].v_from(isforward), segments[idx].v_to(isforward)))
+            segments[idx].set_v_to(
+                isforward,
+                np.where(
+                    np.abs(segments[idx].delta) < 1e-5, segments[idx].v_from(isforward), segments[idx].v_to(isforward)
+                ),
+            )
             if 0 <= (idx + incr) < len(segments):
                 # on direction change, set those joints to zero
                 # sign change with zero is ok
-                sign_change = np.logical_and((np.sign(segments[idx].delta)  * np.sign(segments[idx+incr].delta)) != 0,
-                                              np.sign(segments[idx].delta) != np.sign(segments[idx+incr].delta))
+                sign_change = np.logical_and(
+                    (np.sign(segments[idx].delta) * np.sign(segments[idx + incr].delta)) != 0,
+                    np.sign(segments[idx].delta) != np.sign(segments[idx + incr].delta),
+                )
                 # print_arr("sign_change", sign_change)
-                segments[idx].set_v_to(isforward, np.where(sign_change, 0., segments[idx].v_to(isforward)))
+                segments[idx].set_v_to(isforward, np.where(sign_change, 0.0, segments[idx].v_to(isforward)))
 
         # forward scan for allowed segment velocities
         for seg_index in range(len(segments)):
@@ -725,11 +757,11 @@ class DobotControl(DobotBase):
             slices = np.ceil(segment.phase_duration * 50.0).astype(int)
             totalSlices = int(slices.sum())
             if debug:
-                print_arr("slices, total", segment.phase_duration * 50., (totalSlices,))
+                print_arr("slices, total", segment.phase_duration * 50.0, (totalSlices,))
 
             commands = 1
             while commands <= totalSlices:
-                #print(f"{commands=}", f"{slices[ACCEL]=}")
+                # print(f"{commands=}", f"{slices[ACCEL]=}")
                 if commands <= slices[ACCEL] and slices[ACCEL] > 0:
                     t = commands / 50.0
                     s = segment.v_start * t + 0.5 * segment.joint_accel * t * t
@@ -744,15 +776,17 @@ class DobotControl(DobotBase):
                 else:
                     dec_cmd = commands - slices[ACCEL] - slices[FLAT]
                     t = dec_cmd / 50.0
-                    s = segment.phase_distances[ACCEL] + segment.phase_distances[FLAT] + (
-                            segment.joint_v_peak * t - 0.5 * segment.joint_decel * t * t
+                    s = (
+                        segment.phase_distances[ACCEL]
+                        + segment.phase_distances[FLAT]
+                        + (segment.joint_v_peak * t - 0.5 * segment.joint_decel * t * t)
                     )
                     if debug:
                         print_arr("decelerating", [t], s)
 
                 next_joint_pos = segment.start + np.sign(segment.delta) * s
                 nextToolRotation = self._toolRotation + (
-                        (toolRotation - self._toolRotation) * (commands / float(totalSlices))
+                    (toolRotation - self._toolRotation) * (commands / float(totalSlices))
                 )
                 cmdVals, dirs, movedSteps, leftSteps = self._prepareAnglesSlice(next_joint_pos, debug=debug)
                 stepDelta = 0
@@ -760,8 +794,9 @@ class DobotControl(DobotBase):
                     stepDelta = np.abs(movedSteps - prevMovedSteps).sum()
                 skip_this_slice = np.all(np.abs(movedSteps) <= 1) and stepDelta > 20
                 if debug:
-                    self._debug("steps to move:", *movedSteps, "delta:", stepDelta,
-                                "skipped!" if skip_this_slice else "")
+                    self._debug(
+                        "steps to move:", *movedSteps, "delta:", stepDelta, "skipped!" if skip_this_slice else ""
+                    )
                     self._debug("leftovers", *leftSteps)
                 commands += 1
                 if skip_this_slice:

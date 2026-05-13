@@ -11,9 +11,8 @@ License: MIT
 
 import numpy as np
 
-
 BASE, REAR, FRONT = range(3)
-JOINT_NAME = ['base', 'rear', 'front']
+JOINT_NAME = ["base", "rear", "front"]
 
 
 def valueToStr(v):
@@ -27,6 +26,7 @@ def valueToStr(v):
         s = f"{v:>7s}"  # string?
     return s
 
+
 def arrayToStr(arr):
     if arr is None:
         return "None"
@@ -34,6 +34,7 @@ def arrayToStr(arr):
         return f"({",".join([valueToStr(v) for v in arr])})"
     except TypeError:
         return valueToStr(arr)
+
 
 class DobotBase:
     def class_name(self):

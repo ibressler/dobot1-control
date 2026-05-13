@@ -30,7 +30,7 @@ lengthFrontSquared = pow(lengthFrontArm, 2)
 
 
 class DobotKinematics(DobotBase):
-    def __init__(self, endEffectorOffset=(50.9, 15.)):
+    def __init__(self, endEffectorOffset=(50.9, 15.0)):
         """
         Manages the Dobot geometry configuration with an end effector offset and an optional debug mode.
 
@@ -46,11 +46,20 @@ class DobotKinematics(DobotBase):
         """
         Calculates the Cartesian coordinates (x, y, z) from the given joint angles (base, rear arm, front arm).
         """
-        rearArmAngle = .5 * math.pi - rearArmAngle
-        radius = lengthRearArm * math.cos(rearArmAngle) + lengthFrontArm * math.cos(frontArmAngle) + self._endEffectorOffset[0]
+        rearArmAngle = 0.5 * math.pi - rearArmAngle
+        radius = (
+            lengthRearArm * math.cos(rearArmAngle)
+            + lengthFrontArm * math.cos(frontArmAngle)
+            + self._endEffectorOffset[0]
+        )
         x = radius * math.cos(baseAngle)
         y = radius * math.sin(baseAngle)
-        z = heightFromGround - lengthFrontArm * math.sin(frontArmAngle) + lengthRearArm * math.sin(rearArmAngle) - self._endEffectorOffset[1]
+        z = (
+            heightFromGround
+            - lengthFrontArm * math.sin(frontArmAngle)
+            + lengthRearArm * math.sin(rearArmAngle)
+            - self._endEffectorOffset[1]
+        )
         return np.array((x, y, z), dtype=float)
 
     def anglesFromCoordinates(self, xyz, debug=False):
@@ -60,7 +69,7 @@ class DobotKinematics(DobotBase):
         if debug:
             self._debug("anglesFromCoordinates", xyz, level=0)
         # Radius to the center of the tool.
-        radiusTool = math.sqrt(xyz[0]**2 + xyz[1]**2)
+        radiusTool = math.sqrt(xyz[0] ** 2 + xyz[1] ** 2)
         if debug:
             self._debug("radiusTool", radiusTool)
         # Radius to joint3.
@@ -96,10 +105,10 @@ class DobotKinematics(DobotBase):
         )
         if debug:
             self._debug("q2", q2)
-        rearAngle = .5 * math.pi - (q1 + q2)
+        rearAngle = 0.5 * math.pi - (q1 + q2)
         if debug:
             self._debug("ik rear angle", rearAngle)
-        frontAngle = .5 * math.pi - (
+        frontAngle = 0.5 * math.pi - (
             math.acos(
                 (lengthRearSquared + lengthFrontSquared - hypotenuseSquared) / (2.0 * lengthRearArm * lengthFrontArm)
             )
