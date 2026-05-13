@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier
-_commit: v1.1.15-4-g60d5cc1
+_commit: v1.1.15-9-gd769a2b
 _src_path: ~/code/bam/yapy-copier-template
 author_count: 1
 author_emails: dev@ingobressler.net
@@ -12,7 +12,8 @@ project_description: Control a Dobot v1 arm (2016) with motion planning in Pytho
     Based on open-dobot by maxosprojects.
 project_name: Dobot1-Control
 pypi_host: test.pypi.org
-python_versions: []
+python_versions:
+- '3.14'
 release_date_question: today
 repo_hosting_domain: github.com
 repo_main_branch: main
