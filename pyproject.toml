@@ -58,7 +58,7 @@ repository = "https://github.com/ibressler/dobot1-control"
 changelog = "https://ibressler.github.io/dobot1-control/changelog.html"
 
 [project.scripts]
-dobot1-calibrate-accelerometers = "dobot1_control.calibrate_accelerometers:main"
+dobot1-calibrate-accelerometers = "dobot1_control.CalibrateAccelerometers:main"
 
 [build-system]
 requires = [

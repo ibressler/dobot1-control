@@ -43,7 +43,7 @@ CMD_BOARD_VERSION = 12
 
 
 class DobotDriver(DobotBase):
-    # See calibrate_accelerometers.py for details
+    # See CalibrateAccelerometers.py for details
     accelOffsetDefault = (1024, 1024)  # FIXME: move to configurable DobotConfig obj?
     accelConversionDefault = 493.56
 
