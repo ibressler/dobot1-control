@@ -22,7 +22,7 @@ classifiers = [
   "Intended Audience :: Science/Research",
 ]
 dependencies = [
-    "pyserial", "numpy"
+    "pyserial", "numpy", "svgpathtools"
 ]
 [project.optional-dependencies]
 tests = [
