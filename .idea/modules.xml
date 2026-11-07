@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/dobot-ctrl.iml" filepath="$PROJECT_DIR$/.idea/dobot-ctrl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/dobot1-control.iml" filepath="$PROJECT_DIR$/.idea/dobot1-control.iml" />
     </modules>
   </component>
 </project>
