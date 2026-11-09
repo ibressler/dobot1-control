@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## v1.5.0 (2026-11-09)
+
+### Bug fixes
+
+* **Project**: apply linting fixes ([`477ecd3`](https://github.com/ibressler/dobot1-control/commit/477ecd3fb56754dbd535667c6ba84bbf4efbb396))
+
+* **Project**: apply linting fixes ([`11b1ef7`](https://github.com/ibressler/dobot1-control/commit/11b1ef772ae4e0829427449f67e8eb53c787e590))
+
+### Continuous integration
+
+* ci: switching to pypi.org ([`844d3a8`](https://github.com/ibressler/dobot1-control/commit/844d3a882bef7e81a984afd3b6413432170d5e10))
+
+### Features
+
+* **SVG**: add SVG path-to-polylines conversion utility ([`39a642c`](https://github.com/ibressler/dobot1-control/commit/39a642c6897f784c46f8e5e50912f868f291a333))
+
+### Refactoring
+
+* **calibrate_accelerometers**: to CalibrateAccelerometers.py ([`a0cac74`](https://github.com/ibressler/dobot1-control/commit/a0cac74db45483611591ad1ea47657891058acd2))
+
+### Testing
+
+* **Project**: plain circle and square testdata ([`598e008`](https://github.com/ibressler/dobot1-control/commit/598e008827737302be76a80571e9c986ec002946))
+
 ## v1.4.0 (2026-05-13)
 
 ### Bug fixes
