@@ -87,39 +87,32 @@ version_variables = [                        # version location
     "src/dobot1_control/__init__.py:__version__",
     "docs/conf.py:version",
 ]
+
 [tool.semantic_release.commit_parser_options]
 allowed_tags = ["build", "chore", "ci", "docs", "feat", "enh", "fix", "perf", "style", "refactor", "test"]
 minor_tags = ["feat", "enh"]
 patch_tags = ["fix", "perf"]
+
 [tool.semantic_release.changelog]
 exclude_commit_patterns = ["chore", ".*\\bGHA\\b.*", ".*\\b[gG][hH] actions?\\b.*"]
+
 [tool.semantic_release.publish]
 upload_to_vcs_release = false
 
-[tool.black]
-line-length = 120
-skip-string-normalization = false
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
+[tool.ruff]
+line-length = 100
+extend-exclude = [".ipynb_checkpoints"]
 
-[tool.isort]
-profile = "black"
-line_length = 120
-group_by_package = true
-known_first_party = "dobot1_control"
-ensure_newline_before_comments = true
-extend_skip = [".ipynb_checkpoints"]
+[tool.ruff.lint]
+ignore = ["E203", "N999"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["dobot1_control"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
 
 [tool.docformatter]
 recursive = true
