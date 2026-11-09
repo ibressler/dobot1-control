@@ -17,7 +17,7 @@ def valueToStr(v):
     if isinstance(v, (float, np.floating)):
         s = f"{v: 7.4f}"
     elif isinstance(v, (bool, np.bool_)):
-        s = f"{str(v):>7s}"
+        s = f"{v!s:>7s}"
     elif isinstance(v, (int, np.integer)):  # int?
         s = f"{v:>7d}"
     else:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 
 import subprocess
@@ -29,7 +28,7 @@ myst_enable_extensions = [
     "linkify",
 ]
 myst_heading_anchors = 3
-inheritance_edge_attrs = dict(color="gray")  # readable in darkmode too
+inheritance_edge_attrs = {"color": "gray"}  # readable in darkmode too
 autosummary_generate = ["reference/index.rst"]  # Generate stubs for the reference landing page
 autosummary_generate_overwrite = True
 templates_path = ["_templates"]
@@ -41,7 +40,7 @@ master_doc = "index"
 project = "Dobot1-Control"
 year = "2026"
 author = "Ingo Breßler"
-copyright = "{0}, {1}".format(year, author)
+copyright = f"{year}, {author}"
 version = "1.4.0"
 release = version
 commit_id = None
@@ -81,7 +80,7 @@ if commit_id:
     html_last_updated_fmt += f" (git {commit_id})"
 html_split_index = False
 
-html_short_title = "%s-%s" % (project, version)
+html_short_title = f"{project}-{version}"
 
 napoleon_use_ivar = True
 napoleon_use_rtype = False

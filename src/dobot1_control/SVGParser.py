@@ -353,7 +353,7 @@ def collect_transformed_line_paths(svg_file, output_scale=1.0):
     return all_line_paths, bounds
 
 
-def svg_to_polylines(svg_file: Path, scale: float=1.0, z: float=None, upper_left: tuple[float, float]=None):
+def svg_to_polylines(svg_file: Path, scale: float=1.0, z: float | None=None, upper_left: tuple[float, float] | None=None):
     """
     Converts an SVG file into a list of polylines, considering scaling and optional z-coordinates.
 

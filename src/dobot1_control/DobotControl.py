@@ -23,7 +23,6 @@ in move (with the "Laser Adjustment" button), it has to be re-initialized and SD
 """
 
 import math
-import sys
 
 import numpy as np
 
@@ -32,10 +31,7 @@ from dobot1_control.DobotDriver import DobotDriver
 from dobot1_control.DobotKinematics import DobotKinematics
 
 piTwo = 2.0 * np.pi
-
-# Workaround to support Python 2/3
-if sys.version_info > (3,):
-    long = int
+long = int
 
 # Backlash in the motor reduction gears is actually 22 steps, but 5 is visually unnoticeable.
 # It is a horrible thing to compensate for a bad backlash in software, but the only other
@@ -71,7 +67,7 @@ def arraysToStr(*args):
 
 
 def print_arr(prefix, *args):
-    print(f"{str(prefix):>15s}", *arraysToStr(*args))
+    print(f"{prefix!s:>15s}", *arraysToStr(*args))
 
 
 class DobotPlotter:
@@ -98,10 +94,10 @@ class DobotPlotter:
 
     def show(self):
         linewidth = 1.0
-        colors = dict(x="darkred", y="darkgreen", z="lightblue", base="lightblue", rear="darkgreen", front="darkred")
+        colors = {"x": "darkred", "y": "darkgreen", "z": "lightblue", "base": "lightblue", "rear": "darkgreen", "front": "darkred"}
 
         def get_kwargs(axis):
-            return dict(color=colors[axis], linewidth=linewidth, label=axis)
+            return {"color": colors[axis], "linewidth": linewidth, "label": axis}
 
         if not len(self._slice_actual):
             return  # nothing to do
@@ -196,7 +192,7 @@ class SegmentParams:
         return "\n".join(
             (
                 ", ".join((f"{name}: {arrayToStr(getattr(self, name))}" for name in ("start", "end", "delta"))),
-                ", ".join((f"{name}: {arrayToStr(getattr(self, name))}" for name in ("v_start", "v_end"))),
+                ", ".join(f"{name}: {arrayToStr(getattr(self, name))}" for name in ("v_start", "v_end")),
             )
         )
 

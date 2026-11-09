@@ -21,9 +21,7 @@ from serial import SerialException
 
 from dobot1_control.DobotBase import FRONT, REAR, DobotBase
 
-# Workaround to support Python 2/3
-if sys.version_info > (3,):
-    long = int
+long = int
 
 _max_trys = 1
 
@@ -151,7 +149,7 @@ class DobotDriver(DobotBase):
         :type data: int
         """
         self._crc = self._crc ^ (data << 8)
-        for bit in range(0, 8):
+        for bit in range(8):
             if (self._crc & 0x8000) == 0x8000:
                 self._crc = (self._crc << 1) ^ 0x1021
             else:
@@ -357,9 +355,8 @@ class DobotDriver(DobotBase):
                 ret.append(val[1])
 
             crc = self._readchecksumword()
-            if crc[0]:
-                if self._crc & 0xFFFF == crc[1] & 0xFFFF:
-                    return tuple(ret)
+            if crc[0] and self._crc & 0xFFFF == crc[1] & 0xFFFF:
+                return tuple(ret)
             trys -= 1
         return tuple([0] * (len(read_commands) + 1))
 
@@ -435,9 +432,8 @@ class DobotDriver(DobotBase):
             self._writechecksum()
             self._port.send()
             crc = self._readchecksumword()
-            if crc[0]:
-                if self._crc & 0xFFFF == crc[1] & 0xFFFF:
-                    return True
+            if crc[0] and self._crc & 0xFFFF == crc[1] & 0xFFFF:
+                return True
             trys -= 1
         return False
 
@@ -1158,13 +1154,11 @@ class SerialAggregator:
         """
         No-op for compatibility.
         """
-        pass
 
     def flush(self):
         """
         No-op for compatibility.
         """
-        pass
 
     def send(self):
         """
