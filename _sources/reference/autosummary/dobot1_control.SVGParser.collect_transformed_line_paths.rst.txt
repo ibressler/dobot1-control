@@ -1,0 +1,6 @@
+dobot1\_control.SVGParser.collect\_transformed\_line\_paths
+===========================================================
+
+.. currentmodule:: dobot1_control.SVGParser
+
+.. autofunction:: collect_transformed_line_paths

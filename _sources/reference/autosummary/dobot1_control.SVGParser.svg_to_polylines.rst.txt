@@ -1,0 +1,6 @@
+dobot1\_control.SVGParser.svg\_to\_polylines
+============================================
+
+.. currentmodule:: dobot1_control.SVGParser
+
+.. autofunction:: svg_to_polylines

@@ -24,9 +24,10 @@
    :template: module.rst
    :recursive:
 
+   CalibrateAccelerometers
    DobotBase
    DobotControl
    DobotDriver
    DobotKinematics
-   calibrate_accelerometers
+   SVGParser
 

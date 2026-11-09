@@ -1,0 +1,6 @@
+dobot1\_control.SVGParser.transform\_point
+==========================================
+
+.. currentmodule:: dobot1_control.SVGParser
+
+.. autofunction:: transform_point

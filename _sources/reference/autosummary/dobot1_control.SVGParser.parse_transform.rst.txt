@@ -1,0 +1,6 @@
+dobot1\_control.SVGParser.parse\_transform
+==========================================
+
+.. currentmodule:: dobot1_control.SVGParser
+
+.. autofunction:: parse_transform

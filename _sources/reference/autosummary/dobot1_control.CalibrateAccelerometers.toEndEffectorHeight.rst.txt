@@ -1,0 +1,6 @@
+dobot1\_control.CalibrateAccelerometers.toEndEffectorHeight
+===========================================================
+
+.. currentmodule:: dobot1_control.CalibrateAccelerometers
+
+.. autofunction:: toEndEffectorHeight

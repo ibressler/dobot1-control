@@ -1,0 +1,32 @@
+dobot1\_control.SVGParser
+=========================
+
+.. automodule:: dobot1_control.SVGParser
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+   
+      apply_transform_to_points
+      collect_transformed_line_paths
+      multiply_matrices
+      parse_transform
+      sample_path_to_lines
+      svg_to_polylines
+      transform_point
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

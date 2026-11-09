@@ -1,0 +1,6 @@
+dobot1\_control.CalibrateAccelerometers.positions\_mode
+=======================================================
+
+.. currentmodule:: dobot1_control.CalibrateAccelerometers
+
+.. autofunction:: positions_mode

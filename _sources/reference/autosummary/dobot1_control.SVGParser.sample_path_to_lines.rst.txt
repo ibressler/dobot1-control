@@ -1,0 +1,6 @@
+dobot1\_control.SVGParser.sample\_path\_to\_lines
+=================================================
+
+.. currentmodule:: dobot1_control.SVGParser
+
+.. autofunction:: sample_path_to_lines

@@ -1,0 +1,6 @@
+dobot1\_control.SVGParser.multiply\_matrices
+============================================
+
+.. currentmodule:: dobot1_control.SVGParser
+
+.. autofunction:: multiply_matrices
