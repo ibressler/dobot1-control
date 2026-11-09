@@ -89,7 +89,9 @@ class DobotDriver(DobotBase):
         """
         try:
             self._port = SerialAggregator(
-                serial.Serial(self._comport, baudrate=self._rate, timeout=timeout, inter_byte_timeout=0.1)
+                serial.Serial(
+                    self._comport, baudrate=self._rate, timeout=timeout, inter_byte_timeout=0.1
+                )
             )
             # self._port = serial.Serial(self._comport, baudrate=self._rate, timeout=timeout, interCharTimeout=0.1)
 
@@ -292,7 +294,15 @@ class DobotDriver(DobotBase):
         :rtype: tuple[int, int, int, int, int, int, int]
         """
         return self._read(
-            cmd, [self._readsword, self._readsword, self._readsword, self._readsword, self._readsword, self._readsword]
+            cmd,
+            [
+                self._readsword,
+                self._readsword,
+                self._readsword,
+                self._readsword,
+                self._readsword,
+                self._readsword,
+            ],
         )
 
     def _read4(self, cmd):
@@ -520,7 +530,13 @@ class DobotDriver(DobotBase):
         :rtype: bool
         """
         return self._write(
-            cmd, [(self._writelong, val1), (self._writelong, val2), (self._writebyte, val3), (self._writebyte, val4)]
+            cmd,
+            [
+                (self._writelong, val1),
+                (self._writelong, val2),
+                (self._writebyte, val3),
+                (self._writebyte, val4),
+            ],
         )
 
     def _write444(self, cmd, val1, val2, val3):
@@ -538,7 +554,9 @@ class DobotDriver(DobotBase):
         :return: True if success, False otherwise.
         :rtype: bool
         """
-        return self._write(cmd, [(self._writelong, val1), (self._writelong, val2), (self._writelong, val3)])
+        return self._write(
+            cmd, [(self._writelong, val1), (self._writelong, val2), (self._writelong, val3)]
+        )
 
     def _write_read(self, cmd, write_commands):
         """
@@ -632,7 +650,13 @@ class DobotDriver(DobotBase):
         :rtype: tuple[int, int]
         """
         return self._write_read(
-            cmd, [(self._writelong, val1), (self._writelong, val2), (self._writelong, val3), (self._writebyte, val4)]
+            cmd,
+            [
+                (self._writelong, val1),
+                (self._writelong, val2),
+                (self._writelong, val3),
+                (self._writebyte, val4),
+            ],
         )
 
     def _write1444122read1(self, cmd, val1, val2, val3, val4, val5, val6):
@@ -809,7 +833,9 @@ class DobotDriver(DobotBase):
         except ValueError:
             return np.pi * 0.5
 
-    def CalibrateJoint(self, joint, forwardCommand, backwardCommand, direction, pin, pinMode, pullup):
+    def CalibrateJoint(
+        self, joint, forwardCommand, backwardCommand, direction, pin, pinMode, pullup
+    ):
         """
         Initiates joint calibration procedure using a limit switch/photointerrupter. Effective immediately.
         The current command buffer is cleared.
@@ -837,9 +863,16 @@ class DobotDriver(DobotBase):
         """
         if 1 > joint > 3:
             return False
-        control = ((pinMode & 0x01) << 4) | ((pullup & 0x01) << 3) | ((direction & 0x01) << 2) | ((joint - 1) & 0x03)
+        control = (
+            ((pinMode & 0x01) << 4)
+            | ((pullup & 0x01) << 3)
+            | ((direction & 0x01) << 2)
+            | ((joint - 1) & 0x03)
+        )
         self._lock.acquire()
-        result = self._write14411(CMD_CALIBRATE_JOINT, forwardCommand, backwardCommand, pin, control)
+        result = self._write14411(
+            CMD_CALIBRATE_JOINT, forwardCommand, backwardCommand, pin, control
+        )
         self._lock.release()
         return result
 
@@ -872,7 +905,11 @@ class DobotDriver(DobotBase):
             to the controller's command queue (1 - added, 0 - not added, as the queue was full).
         :rtype: tuple[int, int]
         """
-        control = (int(jointDir[0]) & 0x01) | ((int(jointDir[1]) & 0x01) << 1) | ((int(jointDir[2]) & 0x01) << 2)
+        control = (
+            (int(jointDir[0]) & 0x01)
+            | ((int(jointDir[1]) & 0x01) << 1)
+            | ((int(jointDir[2]) & 0x01) << 2)
+        )
         self._lock.acquire()
         if servoGrab > 480:
             servoGrab = 480

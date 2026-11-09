@@ -29,7 +29,7 @@ def arrayToStr(arr):
     if arr is None:
         return "None"
     try:
-        return f"({",".join([valueToStr(v) for v in arr])})"
+        return f"({','.join([valueToStr(v) for v in arr])})"
     except TypeError:
         return valueToStr(arr)
 

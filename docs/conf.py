@@ -1,5 +1,3 @@
-
-
 import subprocess
 from os.path import abspath, dirname, join
 

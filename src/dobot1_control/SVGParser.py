@@ -17,7 +17,7 @@ import svgpathtools
 from svgpathtools import parse_path
 
 
-def sample_path_to_lines(path: svgpathtools.Path, flatness: float=0.5, max_depth: int=18):
+def sample_path_to_lines(path: svgpathtools.Path, flatness: float = 0.5, max_depth: int = 18):
     """
     Convert an SVG path to a series of line segments based on the specified flatness and
     recursive depth limits.
@@ -100,10 +100,13 @@ def sample_path_to_lines(path: svgpathtools.Path, flatness: float=0.5, max_depth
         p1 = seg.point(1.0)
         m1 = seg.point(1 / 3)
         m2 = seg.point(2 / 3)
-        return max(
-            point_line_distance(m1, p0, p1),
-            point_line_distance(m2, p0, p1),
-        ) <= flatness
+        return (
+            max(
+                point_line_distance(m1, p0, p1),
+                point_line_distance(m2, p0, p1),
+            )
+            <= flatness
+        )
 
     def subdivide_segment(seg, depth, out_points):
         """
@@ -245,11 +248,7 @@ def parse_transform(transform):
         return matrix
 
     for name, args_str in re.findall(r"([a-zA-Z]+)\s*\(([^)]*)\)", transform):
-        values = [
-            float(v)
-            for v in re.split(r"[,\s]+", args_str.strip())
-            if v
-        ]
+        values = [float(v) for v in re.split(r"[,\s]+", args_str.strip()) if v]
 
         if name == "translate":
             tx = values[0]
@@ -344,16 +343,28 @@ def collect_transformed_line_paths(svg_file, output_scale=1.0):
             designScaleX = output_scale * float(designWidth) / (max_x - min_x)
             designScaleY = output_scale * float(designHeight) / (max_y - min_y)
 
-            scaledPoints = [((x * designScaleX), (y * designScaleY))
-                            for x, y in line_points]
+            scaledPoints = [((x * designScaleX), (y * designScaleY)) for x, y in line_points]
             all_line_paths.append(scaledPoints)
 
-    bounds = None if min_x is None else (min_x * designScaleX, min_y * designScaleY,
-                                         max_x * designScaleX, max_y * designScaleY)
+    bounds = (
+        None
+        if min_x is None
+        else (
+            min_x * designScaleX,
+            min_y * designScaleY,
+            max_x * designScaleX,
+            max_y * designScaleY,
+        )
+    )
     return all_line_paths, bounds
 
 
-def svg_to_polylines(svg_file: Path, scale: float=1.0, z: float | None=None, upper_left: tuple[float, float] | None=None):
+def svg_to_polylines(
+    svg_file: Path,
+    scale: float = 1.0,
+    z: float | None = None,
+    upper_left: tuple[float, float] | None = None,
+):
     """
     Converts an SVG file into a list of polylines, considering scaling and optional z-coordinates.
 
@@ -395,14 +406,18 @@ def svg_to_polylines(svg_file: Path, scale: float=1.0, z: float | None=None, upp
     polylines = []
     for line_points in line_paths:
         # Flip y-axis to match ROS convention
-        points = [(pt[0], size[1]-pt[1]) for pt, _ in groupby(line_points)]
+        points = [(pt[0], size[1] - pt[1]) for pt, _ in groupby(line_points)]
         if upper_left is not None:
             points = [(pt[0] + offset_x, pt[1] + offset_y) for pt in points]
         if z is not None:
             points = [(pt[0], pt[1], z) for pt in points]
         polylines.append(np.array(points))
 
-    bounds = np.hstack((np.stack(tuple(path.min(axis=0) for path in polylines)).min(axis=0),
-                        np.stack(tuple(path.max(axis=0) for path in polylines)).max(axis=0)))
+    bounds = np.hstack(
+        (
+            np.stack(tuple(path.min(axis=0) for path in polylines)).min(axis=0),
+            np.stack(tuple(path.max(axis=0) for path in polylines)).max(axis=0),
+        )
+    )
 
     return polylines, bounds

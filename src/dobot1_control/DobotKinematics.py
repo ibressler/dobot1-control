@@ -98,7 +98,8 @@ class DobotKinematics(DobotBase):
         if debug:
             self._debug("q1", q1)
         q2 = math.acos(
-            (lengthRearSquared - lengthFrontSquared + hypotenuseSquared) / (2.0 * lengthRearArm * hypotenuse)
+            (lengthRearSquared - lengthFrontSquared + hypotenuseSquared)
+            / (2.0 * lengthRearArm * hypotenuse)
         )
         if debug:
             self._debug("q2", q2)
@@ -107,7 +108,8 @@ class DobotKinematics(DobotBase):
             self._debug("ik rear angle", rearAngle)
         frontAngle = 0.5 * math.pi - (
             math.acos(
-                (lengthRearSquared + lengthFrontSquared - hypotenuseSquared) / (2.0 * lengthRearArm * lengthFrontArm)
+                (lengthRearSquared + lengthFrontSquared - hypotenuseSquared)
+                / (2.0 * lengthRearArm * lengthFrontArm)
             )
             - rearAngle
         )

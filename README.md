@@ -45,10 +45,12 @@ This example can be found in the [dobot example moves.ipynb](https://raw.githubu
 To move the arm tool as precisely as its mechanical capabilities allow along a straight line parallel to a flat surface, such as a table, calibrate the accelerometer offsets and conversion factor. The determined values need to be provided to the *Dobot()* constructor:
 
 ```python
-Dobot("/dev/ttyACM0",
-      endEffectorOffset=(49., 64.),
-      accelOffset=(1016.39, 1009.08),
-      accelConversion=509.00)
+Dobot(
+    "/dev/ttyACM0",
+    endEffectorOffset=(49.0, 64.0),
+    accelOffset=(1016.39, 1009.08),
+    accelConversion=509.00,
+)
 ```
 
 ### Accelerometer Calibration

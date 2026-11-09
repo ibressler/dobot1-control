@@ -211,8 +211,10 @@ def positions_mode(driver, kinematics, positions):
 
     for i, pos in enumerate(positions):
         angles.append(kinematics.anglesFromCoordinates(pos))
-        input(f"-> Move the arm to cartesian position {i} {pos}, "
-              f"angles {arrayToStr(np.rad2deg(angles[-1]))}, and press <enter>...")
+        input(
+            f"-> Move the arm to cartesian position {i} {pos}, "
+            f"angles {arrayToStr(np.rad2deg(angles[-1]))}, and press <enter>..."
+        )
         sensors.append(driver.GetAccelerometers())
         display_accelerometer_data(driver, kinematics, sensors[-1])
 
@@ -229,7 +231,7 @@ def positions_mode(driver, kinematics, positions):
     print("-> Use the following values in the Dobot or DobotDriver constructor:")
     print(
         f"   accelOffset=({offset_rear:.2f}, {offset_front:.2f}), "
-        f"accelConversion={.5 * (accelConv0 + accelConv1):.2f}"
+        f"accelConversion={0.5 * (accelConv0 + accelConv1):.2f}"
     )
 
 
@@ -252,7 +254,7 @@ def main():
         nargs=3,
         default=positionDefaults["pos1"],
         metavar=("X", "Y", "Z"),
-        help=f'First position for calibration, default: {positionDefaults["pos1"]}',
+        help=f"First position for calibration, default: {positionDefaults['pos1']}",
     )
     parser.add_argument(
         "--pos2",
@@ -260,7 +262,7 @@ def main():
         nargs=3,
         default=positionDefaults["pos2"],
         metavar=("X", "Y", "Z"),
-        help=f'Second position for calibration, default: {positionDefaults["pos2"]}',
+        help=f"Second position for calibration, default: {positionDefaults['pos2']}",
     )
     parser.add_argument(
         "--offset",
@@ -270,7 +272,7 @@ def main():
         metavar=("H", "V"),
         help="End effector offset: (horizontal, vertical) distance "
         "of the mounted tool from joint3 (see 'docs/img/dobot-geometry.png')"
-        f", default: {positionDefaults["offset"]}",
+        f", default: {positionDefaults['offset']}",
     )
     args = parser.parse_args()
 

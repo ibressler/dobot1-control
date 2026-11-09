@@ -33,13 +33,19 @@ class TestDobotKinematics(unittest.TestCase):
 
                 # Check if calculated angles match original angles
                 np.testing.assert_allclose(
-                    calculated_angles, angles, atol=1e-7, err_msg=f"Angles mismatch for input {angles}"
+                    calculated_angles,
+                    angles,
+                    atol=1e-7,
+                    err_msg=f"Angles mismatch for input {angles}",
                 )
 
                 # Round trip: coordinates -> angles -> coordinates
                 calculated_coords = self.kinematics.coordinatesFromAngles(*calculated_angles)
                 np.testing.assert_allclose(
-                    calculated_coords, coords, atol=1e-7, err_msg=f"Coordinates mismatch for input {angles}"
+                    calculated_coords,
+                    coords,
+                    atol=1e-7,
+                    err_msg=f"Coordinates mismatch for input {angles}",
                 )
 
 
