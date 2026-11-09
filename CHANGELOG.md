@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.5.1 (2026-11-09)
+
+### Bug fixes
+
+* **Github Actions**: checkout github.ref to get new version pushed during the workflow ([`1f79c1c`](https://github.com/ibressler/dobot1-control/commit/1f79c1cdab39c2dd7b400e9ab324a36532e8814f))
+
 ## v1.5.0 (2026-11-09)
 
 ### Bug fixes
